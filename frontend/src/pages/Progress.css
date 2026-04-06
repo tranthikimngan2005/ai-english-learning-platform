@@ -1,0 +1,64 @@
+.prog-card { padding: 24px; }
+.prog-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+}
+.prog-icon   { font-size: 28px; }
+.prog-skill  { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 2px; text-transform: capitalize; }
+.prog-level  { font-size: 13px; font-weight: 500; }
+
+/* CEFR track */
+.cefr-track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 0 8px;
+}
+.cefr-line {
+  position: absolute;
+  top: 10px; left: 20px; right: 20px;
+  height: 2px;
+  background: var(--bg3);
+  z-index: 0;
+}
+.cefr-node {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  z-index: 1;
+  position: relative;
+}
+.cefr-dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--bg3);
+  background: var(--bg3);
+  transition: all 0.3s;
+}
+.cefr-node.past .cefr-dot   { background: var(--node-color); border-color: var(--node-color); }
+.cefr-node.current .cefr-dot {
+  background: var(--node-color);
+  border-color: var(--node-color);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--node-color) 50%, transparent);
+  animation: pulse 1.8s infinite;
+}
+.cefr-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text3);
+}
+.cefr-node.past .cefr-label, .cefr-node.current .cefr-label {
+  color: var(--node-color);
+}
+
+.prog-stats {
+  display: flex; gap: 0; border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 8px;
+}
+.prog-stat {
+  flex: 1; text-align: center; padding: 12px 8px;
+  border-right: 1px solid var(--border);
+}
+.prog-stat:last-child { border-right: none; }
+.prog-stat-val {
+  display: block; font-size: 20px; font-weight: 600;
+  color: var(--text); margin-bottom: 2px;
+}
+.prog-stat-key { font-size: 11px; color: var(--text3); }

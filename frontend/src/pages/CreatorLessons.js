@@ -1,0 +1,148 @@
+import { useEffect, useState, useCallback } from 'react';
+import { lessonApi } from '../api/client';
+import { useToast } from '../context/ToastContext';
+import './Creator.css';
+
+const SKILLS = ['reading','listening','writing','speaking'];
+const LEVELS = ['A1','A2','B1','B2','C1','C2'];
+const STATUS_BADGE = { pending:'badge-yellow', approved:'badge-green', rejected:'badge-red' };
+const EMPTY_FORM = { title:'', skill:'reading', level:'B1', content:'', audio_url:'' };
+
+export default function CreatorLessons() {
+  const toast = useToast();
+  const [lessons,  setLessons]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editId,   setEditId]   = useState(null);
+  const [form,     setForm]     = useState(EMPTY_FORM);
+  const [saving,   setSaving]   = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setLessons(await lessonApi.list()); }
+    catch (e) { toast(e.message,'error'); }
+    finally { setLoading(false); }
+  }, [toast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openNew  = () => { setForm(EMPTY_FORM); setEditId(null); setShowForm(true); };
+  const openEdit = (l) => {
+    setForm({ title:l.title, skill:l.skill, level:l.level, content:l.content, audio_url:l.audio_url||'' });
+    setEditId(l.id); setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.content.trim()) {
+      toast('Tiêu đề và nội dung là bắt buộc','error'); return;
+    }
+    setSaving(true);
+    try {
+      const payload = { ...form, audio_url: form.audio_url||null };
+      if (editId) await lessonApi.update(editId, payload);
+      else        await lessonApi.create(payload);
+      toast(editId ? 'Đã cập nhật bài học!' : 'Đã tạo bài học — chờ admin duyệt!');
+      setShowForm(false); load();
+    } catch (e) { toast(e.message,'error'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Xóa bài học này?')) return;
+    try { await lessonApi.delete(id); toast('Đã xóa!'); load(); }
+    catch (e) { toast(e.message,'error'); }
+  };
+
+  const set = k => e => setForm(f=>({...f,[k]:e.target.value}));
+
+  return (
+    <div className="fade-up">
+      <div className="page-header" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div>
+          <h1 className="page-title">Quản lý bài học</h1>
+          <p className="page-sub">Tạo và chỉnh sửa bài học · chờ admin duyệt</p>
+        </div>
+        <button className="btn btn-primary" onClick={openNew}>✚ Tạo bài học</button>
+      </div>
+
+      {loading ? <div className="loading-page" style={{height:200}}><div className="spinner spinner-lg"/></div> : (
+        <div className="data-table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr><th>Tiêu đề</th><th>Kỹ năng</th><th>Level</th><th>Trạng thái</th><th>Hành động</th></tr>
+            </thead>
+            <tbody>
+              {lessons.length === 0 ? (
+                <tr><td colSpan={5} style={{textAlign:'center',color:'var(--text3)',padding:'32px 0'}}>
+                  Chưa có bài học nào
+                </td></tr>
+              ) : lessons.map(l=>(
+                <tr key={l.id}>
+                  <td className="td-content"><strong style={{color:'var(--text)'}}>{l.title}</strong></td>
+                  <td><span className="badge badge-green" style={{textTransform:'capitalize'}}>{l.skill}</span></td>
+                  <td><span className="badge badge-blue">{l.level}</span></td>
+                  <td><span className={`badge ${STATUS_BADGE[l.status]}`}>{l.status}</span></td>
+                  <td>
+                    <div style={{display:'flex',gap:6}}>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(l)}>✎ Sửa</button>
+                      <button className="btn btn-danger btn-sm" onClick={()=>handleDelete(l.id)}>✕</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="modal-overlay" onClick={()=>setShowForm(false)}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{editId ? 'Sửa bài học' : 'Tạo bài học mới'}</h3>
+              <button className="btn btn-ghost btn-icon" onClick={()=>setShowForm(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group" style={{marginBottom:14}}>
+                <label className="form-label">Tiêu đề</label>
+                <input className="form-input" placeholder="Tiêu đề bài học..."
+                  value={form.title} onChange={set('title')} />
+              </div>
+              <div className="grid-2" style={{gap:10,marginBottom:14}}>
+                <div className="form-group">
+                  <label className="form-label">Kỹ năng</label>
+                  <select className="form-select" value={form.skill} onChange={set('skill')}>
+                    {SKILLS.map(s=><option key={s} value={s} style={{textTransform:'capitalize'}}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Level</label>
+                  <select className="form-select" value={form.level} onChange={set('level')}>
+                    {LEVELS.map(l=><option key={l}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-group" style={{marginBottom:14}}>
+                <label className="form-label">Nội dung bài học</label>
+                <textarea className="form-textarea" rows={5}
+                  placeholder="Nhập nội dung bài học đầy đủ..."
+                  value={form.content} onChange={set('content')} />
+              </div>
+              <div className="form-group" style={{marginBottom:14}}>
+                <label className="form-label">URL Audio (tùy chọn, dành cho Listening)</label>
+                <input className="form-input" placeholder="/audio/lesson_01.mp3"
+                  value={form.audio_url} onChange={set('audio_url')} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setShowForm(false)}>Hủy</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? <><span className="spinner"/>Đang lưu...</> : editId ? 'Cập nhật' : 'Tạo bài học'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
