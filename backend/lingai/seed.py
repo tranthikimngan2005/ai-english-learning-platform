@@ -11,7 +11,8 @@ from app.models.user import (
     User, SkillProfile, Streak, Lesson, Question, ReviewCard,
     RoleEnum, SkillEnum, LevelEnum, QuestionTypeEnum, ContentStatusEnum,
 )
-from datetime import datetime, timedelta
+from datetime import timedelta
+from app.core.time import utc_now_naive
 
 Base.metadata.create_all(bind=engine)
 db = SessionLocal()
@@ -28,7 +29,7 @@ def create_user(username, email, password, role=RoleEnum.student):
     for skill in SkillEnum:
         db.add(SkillProfile(user_id=u.id, skill=skill, current_level=LevelEnum.A2))
     db.add(Streak(user_id=u.id, current_streak=7, longest_streak=14,
-                  last_active_date=datetime.utcnow()))
+                  last_active_date=utc_now_naive()))
     return u
 
 
@@ -127,7 +128,7 @@ db.commit()
 
 print("Creating review cards for student...")
 for q in question_objs[:4]:
-    due = datetime.utcnow() - timedelta(hours=1)  # make them due now
+    due = utc_now_naive() - timedelta(hours=1)  # make them due now
     card = ReviewCard(
         user_id=student.id,
         question_id=q.id,
@@ -135,7 +136,7 @@ for q in question_objs[:4]:
         ease_factor=2.5,
         repetitions=1,
         due_date=due,
-        last_reviewed=datetime.utcnow() - timedelta(days=1),
+        last_reviewed=utc_now_naive() - timedelta(days=1),
     )
     db.add(card)
 

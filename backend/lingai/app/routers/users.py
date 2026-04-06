@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.time import utc_now_naive
 from app.models.user import User, SkillProfile, ReviewCard, QuestionAttempt
 from app.schemas.schemas import UserOut, DashboardResponse, SkillProfileOut, StreakOut
 from app.services.streak import get_or_create_streak
@@ -38,7 +39,7 @@ def get_dashboard(
         db.query(ReviewCard)
         .filter(
             ReviewCard.user_id == current_user.id,
-            ReviewCard.due_date <= datetime.utcnow(),
+            ReviewCard.due_date <= utc_now_naive(),
         )
         .count()
     )

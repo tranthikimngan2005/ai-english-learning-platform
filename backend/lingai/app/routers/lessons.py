@@ -14,9 +14,15 @@ def list_lessons(
     skill: Optional[SkillEnum] = Query(None),
     level: Optional[LevelEnum] = Query(None),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    q = db.query(Lesson).filter(Lesson.status == ContentStatusEnum.approved)
+    # Student: only approved content. Creator: own lessons (all statuses). Admin: all lessons.
+    q = db.query(Lesson)
+    if current_user.role == "student":
+        q = q.filter(Lesson.status == ContentStatusEnum.approved)
+    elif current_user.role == "creator":
+        q = q.filter(Lesson.creator_id == current_user.id)
+
     if skill:
         q = q.filter(Lesson.skill == skill)
     if level:

@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import require_role
+from app.core.time import utc_now_naive
 from app.models.user import User, Question, Lesson, ContentStatusEnum
 from app.schemas.schemas import UserOut, UserUpdateRole, UserBan, AdminStatsResponse
 
@@ -14,7 +15,7 @@ def get_stats(
     db: Session = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ):
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = utc_now_naive() - timedelta(days=7)
     return AdminStatsResponse(
         total_users=db.query(User).count(),
         active_users_7d=db.query(User).filter(User.created_at >= week_ago).count(),
@@ -28,9 +29,14 @@ def get_stats(
 @router.get("/users", response_model=list[UserOut])
 def list_users(
     db: Session = Depends(get_db),
-    _: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role("admin")),
 ):
-    return db.query(User).order_by(User.created_at.desc()).all()
+    return (
+        db.query(User)
+        .filter(User.id != current_user.id)
+        .order_by(User.created_at.desc())
+        .all()
+    )
 
 
 @router.patch("/users/{user_id}/role", response_model=UserOut)
@@ -38,8 +44,11 @@ def change_role(
     user_id: int,
     payload: UserUpdateRole,
     db: Session = Depends(get_db),
-    _: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role("admin")),
 ):
+    if user_id == current_user.id:
+        raise HTTPException(400, "Cannot change your own role")
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
@@ -54,8 +63,11 @@ def ban_user(
     user_id: int,
     payload: UserBan,
     db: Session = Depends(get_db),
-    _: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role("admin")),
 ):
+    if user_id == current_user.id:
+        raise HTTPException(400, "Cannot update your own active status")
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "User not found")

@@ -2,13 +2,13 @@
 All database models for LingAI.
 """
 import enum
-from datetime import datetime
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Float,
     ForeignKey, Enum, Text, JSON
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.time import utc_now_naive
 
 
 # ──────────────────────────────────────────────
@@ -70,7 +70,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role          = Column(Enum(RoleEnum), default=RoleEnum.student, nullable=False)
     is_active     = Column(Boolean, default=True)
-    created_at    = Column(DateTime, default=datetime.utcnow)
+    created_at    = Column(DateTime, default=utc_now_naive)
 
     # relationships
     skill_profiles  = relationship("SkillProfile", back_populates="user", cascade="all, delete-orphan")
@@ -93,7 +93,7 @@ class SkillProfile(Base):
     current_level = Column(Enum(LevelEnum), default=LevelEnum.A1)
     questions_done= Column(Integer, default=0)
     questions_correct = Column(Integer, default=0)
-    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at    = Column(DateTime, default=utc_now_naive, onupdate=utc_now_naive)
 
     user = relationship("User", back_populates="skill_profiles")
 
@@ -119,7 +119,7 @@ class Lesson(Base):
     audio_url   = Column(String, nullable=True)   # for listening
     status      = Column(Enum(ContentStatusEnum), default=ContentStatusEnum.pending)
     creator_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at  = Column(DateTime, default=datetime.utcnow)
+    created_at  = Column(DateTime, default=utc_now_naive)
 
     creator     = relationship("User")
     questions   = relationship("Question", back_populates="lesson")
@@ -145,7 +145,7 @@ class Question(Base):
     audio_url     = Column(String, nullable=True)      # for listening
     status        = Column(Enum(ContentStatusEnum), default=ContentStatusEnum.pending)
     creator_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at    = Column(DateTime, default=datetime.utcnow)
+    created_at    = Column(DateTime, default=utc_now_naive)
 
     lesson        = relationship("Lesson", back_populates="questions")
     creator       = relationship("User")
@@ -166,7 +166,7 @@ class QuestionAttempt(Base):
     user_answer   = Column(Text, nullable=False)
     is_correct    = Column(Boolean, nullable=False)
     ai_feedback   = Column(Text, nullable=True)
-    attempted_at  = Column(DateTime, default=datetime.utcnow)
+    attempted_at  = Column(DateTime, default=utc_now_naive)
 
     user     = relationship("User", back_populates="attempts")
     question = relationship("Question", back_populates="attempts")
@@ -185,7 +185,7 @@ class ReviewCard(Base):
     interval_days = Column(Integer, default=1)      # next review in N days
     ease_factor   = Column(Float, default=2.5)      # SM-2 ease
     repetitions   = Column(Integer, default=0)
-    due_date      = Column(DateTime, default=datetime.utcnow)
+    due_date      = Column(DateTime, default=utc_now_naive)
     last_reviewed = Column(DateTime, nullable=True)
 
     user     = relationship("User", back_populates="review_cards")
@@ -219,6 +219,6 @@ class ChatMessage(Base):
     user_id     = Column(Integer, ForeignKey("users.id"), nullable=False)
     role        = Column(String(10), nullable=False)   # "user" | "assistant"
     content     = Column(Text, nullable=False)
-    created_at  = Column(DateTime, default=datetime.utcnow)
+    created_at  = Column(DateTime, default=utc_now_naive)
 
     user = relationship("User", back_populates="chat_messages")

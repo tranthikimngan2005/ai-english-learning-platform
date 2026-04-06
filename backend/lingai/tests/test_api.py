@@ -389,9 +389,9 @@ class TestReview:
         # Force card to be due now
         db = TestSession()
         from app.models.user import ReviewCard
-        from datetime import datetime
+        from app.core.time import utc_now_naive
         card = db.query(ReviewCard).first()
-        card.due_date = datetime.utcnow()
+        card.due_date = utc_now_naive()
         db.commit()
         db.close()
 
@@ -460,6 +460,11 @@ class TestAdmin:
         assert r.status_code == 200
         assert isinstance(r.json(), list)
 
+    def test_admin_not_listed_in_users(self, client):
+        admin_token = register_admin(client)
+        users = client.get("/api/admin/users", headers=auth_headers(admin_token)).json()
+        assert not any(u["email"] == "admin@test.com" for u in users)
+
     def test_student_cannot_access_admin(self, client):
         token = register_and_login(client)
         r = client.get("/api/admin/stats", headers=auth_headers(token))
@@ -474,6 +479,21 @@ class TestAdmin:
                          json={"role": "creator"}, headers=auth_headers(admin_token))
         assert r.json()["role"] == "creator"
 
+    def test_admin_cannot_change_own_role(self, client):
+        admin_token = register_admin(client)
+        db = TestSession()
+        from app.models.user import User
+        admin_user = db.query(User).filter(User.email == "admin@test.com").first()
+        admin_id = admin_user.id
+        db.close()
+
+        r = client.patch(
+            f"/api/admin/users/{admin_id}/role",
+            json={"role": "student"},
+            headers=auth_headers(admin_token),
+        )
+        assert r.status_code == 400
+
     def test_ban_user(self, client):
         admin_token = register_admin(client)
         register_and_login(client, "bad_user", "bad@test.com")
@@ -482,6 +502,21 @@ class TestAdmin:
         r = client.patch(f"/api/admin/users/{bad['id']}/ban",
                          json={"is_active": False}, headers=auth_headers(admin_token))
         assert r.json()["is_active"] is False
+
+    def test_admin_cannot_ban_self(self, client):
+        admin_token = register_admin(client)
+        db = TestSession()
+        from app.models.user import User
+        admin_user = db.query(User).filter(User.email == "admin@test.com").first()
+        admin_id = admin_user.id
+        db.close()
+
+        r = client.patch(
+            f"/api/admin/users/{admin_id}/ban",
+            json={"is_active": False},
+            headers=auth_headers(admin_token),
+        )
+        assert r.status_code == 400
 
     def test_banned_user_cannot_login(self, client):
         admin_token = register_admin(client)

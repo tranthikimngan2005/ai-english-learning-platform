@@ -1,6 +1,7 @@
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 from sqlalchemy.orm import Session
 from app.models.user import Streak, User
+from app.core.time import utc_now_naive
 
 
 def update_streak(db: Session, user: User) -> Streak:
@@ -17,11 +18,11 @@ def update_streak(db: Session, user: User) -> Streak:
         pass  # already recorded today
     elif last == today - timedelta(days=1):
         streak.current_streak += 1
-        streak.last_active_date = datetime.utcnow()
+        streak.last_active_date = utc_now_naive()
     else:
         # missed a day or first activity
         streak.current_streak = 1
-        streak.last_active_date = datetime.utcnow()
+        streak.last_active_date = utc_now_naive()
 
     streak.longest_streak = max(streak.longest_streak, streak.current_streak)
     db.commit()

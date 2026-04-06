@@ -4,6 +4,7 @@ Grades: again=0, hard=1, good=3, easy=5
 """
 from datetime import datetime, timedelta
 from app.models.user import ReviewResultEnum
+from app.core.time import utc_now_naive
 
 GRADE_MAP = {
     ReviewResultEnum.again: 0,
@@ -41,7 +42,7 @@ def calculate_next_review(
     new_ease = ease_factor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02))
     new_ease = max(1.3, new_ease)  # floor at 1.3
 
-    due_date = datetime.utcnow() + timedelta(days=new_interval)
+    due_date = utc_now_naive() + timedelta(days=new_interval)
     return new_interval, round(new_ease, 4), new_reps, due_date
 
 

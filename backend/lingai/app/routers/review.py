@@ -1,8 +1,8 @@
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.time import utc_now_naive
 from app.models.user import User, ReviewCard
 from app.schemas.schemas import ReviewCardOut, ReviewSubmitRequest, ReviewSubmitResponse
 from app.services.spaced_repetition import calculate_next_review
@@ -20,7 +20,7 @@ def get_due_cards(
         db.query(ReviewCard)
         .filter(
             ReviewCard.user_id == current_user.id,
-            ReviewCard.due_date <= datetime.utcnow(),
+            ReviewCard.due_date <= utc_now_naive(),
         )
         .order_by(ReviewCard.due_date)
         .all()
@@ -53,7 +53,7 @@ def submit_review(
     card.ease_factor = new_ease
     card.repetitions = new_reps
     card.due_date = due_date
-    card.last_reviewed = datetime.utcnow()
+    card.last_reviewed = utc_now_naive()
 
     db.commit()
     db.refresh(card)
