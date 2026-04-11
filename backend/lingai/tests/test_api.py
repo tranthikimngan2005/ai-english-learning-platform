@@ -2,6 +2,8 @@
 Test suite for LingAI API.
 Run with: pytest tests/test_api.py -v
 """
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -9,11 +11,42 @@ from sqlalchemy.orm import sessionmaker
 
 from app.main import app
 from app.core.database import Base, get_db
+from app.core.security import hash_password
+from app.core.time import utc_now_naive
 
 # ── In-memory SQLite for tests ──────────────────────────────
 TEST_DB_URL = "sqlite:///./test_lingai.db"
 engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
 TestSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SEEDED_PASSWORD = "password"
+
+
+def seed_users_from_sql():
+    sql_path = Path(__file__).with_name("users.sql")
+    now = utc_now_naive()
+    sql_script = sql_path.read_text(encoding="utf-8")
+    with engine.begin() as conn:
+        # SQLite needs executescript for multi-statement SQL files.
+        conn.connection.driver_connection.executescript(sql_script)
+        # Keep user list from SQL, but force a known password for deterministic login tests.
+        conn.exec_driver_sql(
+            "UPDATE users SET hashed_password = :hashed_pw",
+            {"hashed_pw": hash_password(SEEDED_PASSWORD)},
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET created_at = :now WHERE created_at IS NULL",
+            {"now": now},
+        )
+
+
+def seed_questions_from_sql():
+    """Load questions from question.sql file."""
+    sql_path = Path(__file__).with_name("question.sql")
+    if sql_path.exists():
+        sql_script = sql_path.read_text(encoding="utf-8")
+        with engine.begin() as conn:
+            # SQLite needs executescript for multi-statement SQL files.
+            conn.connection.driver_connection.executescript(sql_script)
 
 
 def override_get_db():
@@ -30,6 +63,8 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest.fixture(autouse=True)
 def setup_db():
     Base.metadata.create_all(bind=engine)
+    seed_users_from_sql()
+    seed_questions_from_sql()
     yield
     Base.metadata.drop_all(bind=engine)
 
@@ -51,38 +86,22 @@ def register_and_login(client, username="testuser", email="test@test.com", passw
     return resp.json()["access_token"]
 
 
-def register_admin(client):
-    """Register a user then manually set role to admin in DB."""
-    token = register_and_login(client, "admin", "admin@test.com", "admin123")
-    db = TestSession()
-    from app.models.user import User, RoleEnum
-    user = db.query(User).filter(User.email == "admin@test.com").first()
-    user.role = RoleEnum.admin
-    db.commit()
-    db.close()
-    # re-login to get fresh token
+def login_seeded(client, email: str, password: str = SEEDED_PASSWORD):
     resp = client.post(
         "/api/auth/login",
-        data={"username": "admin@test.com", "password": "admin123"},
+        data={"username": email, "password": password},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
+    assert resp.status_code == 200, resp.text
     return resp.json()["access_token"]
+
+
+def register_admin(client):
+    return login_seeded(client, "admin@test.com")
 
 
 def register_creator(client):
-    token = register_and_login(client, "creator1", "creator@test.com", "create123")
-    db = TestSession()
-    from app.models.user import User, RoleEnum
-    user = db.query(User).filter(User.email == "creator@test.com").first()
-    user.role = RoleEnum.creator
-    db.commit()
-    db.close()
-    resp = client.post(
-        "/api/auth/login",
-        data={"username": "creator@test.com", "password": "create123"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-    return resp.json()["access_token"]
+    return login_seeded(client, "creator1@test.com")
 
 
 def auth_headers(token):
@@ -108,6 +127,18 @@ def create_approved_question(client, creator_token, admin_token):
 # AUTH TESTS
 # ════════════════════════════════════════════════════════════
 
+class TestSeededUsers:
+    def test_seeded_users_loaded(self):
+        db = TestSession()
+        from app.models.user import User
+
+        rows = db.query(User).order_by(User.id.asc()).all()
+        db.close()
+
+        assert len(rows) == 50
+        assert rows[0].email == "admin@test.com"
+        assert rows[1].email == "creator1@test.com"
+        assert rows[-1].email == "user44@test.com"
 class TestAuth:
     def test_register_success(self, client):
         r = client.post("/api/auth/register", json={
@@ -299,7 +330,8 @@ class TestPractice:
                         json={"skill": "reading", "count": 5},
                         headers=auth_headers(token))
         assert r.status_code == 200
-        assert r.json()["questions"] == []
+        # Now that we have seeded questions, we should get some
+        assert len(r.json()["questions"]) > 0
 
     def test_start_practice_with_questions(self, client):
         creator_token = register_creator(client)
@@ -364,7 +396,7 @@ class TestReview:
         assert r.status_code == 200
         assert r.json() == []
 
-    def test_card_created_after_submit(self, client):
+    def test_correct_answer_does_not_create_review_card(self, client):
         creator_token = register_creator(client)
         admin_token = register_admin(client)
         qid = create_approved_question(client, creator_token, admin_token)
@@ -372,9 +404,35 @@ class TestReview:
         client.post("/api/questions/practice/submit",
                     json={"question_id": qid, "user_answer": "joyful"},
                     headers=auth_headers(student_token))
-        # Card created but due_date = now + 1 day, so won't appear in /due yet
+
+        db = TestSession()
+        from app.models.user import ReviewCard
+        cards = db.query(ReviewCard).all()
+        db.close()
+        assert len(cards) == 0
+
+    def test_wrong_answer_creates_card_with_first_window(self, client):
+        creator_token = register_creator(client)
+        admin_token = register_admin(client)
+        qid = create_approved_question(client, creator_token, admin_token)
+        student_token = register_and_login(client, "s5b", "s5b@test.com")
+        client.post("/api/questions/practice/submit",
+                    json={"question_id": qid, "user_answer": "sad"},
+                    headers=auth_headers(student_token))
+
+        db = TestSession()
+        from app.models.user import ReviewCard
+        from app.core.time import utc_now_naive
+        card = db.query(ReviewCard).first()
+        assert card is not None
+        assert card.repetitions == 1
+        minutes_until_due = (card.due_date - utc_now_naive()).total_seconds() / 60
+        db.close()
+        assert 8 <= minutes_until_due <= 32
+
         r = client.get("/api/review/due", headers=auth_headers(student_token))
         assert r.status_code == 200
+        assert r.json() == []
 
     def test_submit_review(self, client):
         """Manually create a due card and submit review."""
@@ -384,8 +442,8 @@ class TestReview:
         student_token = register_and_login(client, "s6", "s6@test.com")
         # First attempt creates the card
         client.post("/api/questions/practice/submit",
-                    json={"question_id": qid, "user_answer": "joyful"},
-                    headers=auth_headers(student_token))
+                json={"question_id": qid, "user_answer": "sad"},
+                headers=auth_headers(student_token))
         # Force card to be due now
         db = TestSession()
         from app.models.user import ReviewCard
@@ -403,7 +461,71 @@ class TestReview:
                          json={"card_id": card_id, "result": "good"},
                          headers=auth_headers(student_token))
         assert r2.status_code == 200
-        assert r2.json()["interval_days"] >= 1
+        assert r2.json()["interval_days"] == 1
+
+    def test_fixed_schedule_progression(self, client):
+        creator_token = register_creator(client)
+        admin_token = register_admin(client)
+        qid = create_approved_question(client, creator_token, admin_token)
+        student_token = register_and_login(client, "s7", "s7@test.com")
+
+        client.post("/api/questions/practice/submit",
+                    json={"question_id": qid, "user_answer": "sad"},
+                    headers=auth_headers(student_token))
+
+        db = TestSession()
+        from app.models.user import ReviewCard
+        from app.core.time import utc_now_naive
+        card = db.query(ReviewCard).first()
+        card.due_date = utc_now_naive()
+        db.commit()
+        db.close()
+
+        due = client.get("/api/review/due", headers=auth_headers(student_token)).json()
+        card_id = due[0]["id"]
+
+        # Step 2 => 1 day
+        s2 = client.post("/api/review/submit",
+                         json={"card_id": card_id, "result": "good"},
+                         headers=auth_headers(student_token))
+        assert s2.status_code == 200
+        assert s2.json()["interval_days"] == 1
+
+        # Step 3 => 3 days
+        db = TestSession()
+        card = db.query(ReviewCard).filter(ReviewCard.id == card_id).first()
+        card.due_date = utc_now_naive()
+        db.commit()
+        db.close()
+        s3 = client.post("/api/review/submit",
+                         json={"card_id": card_id, "result": "good"},
+                         headers=auth_headers(student_token))
+        assert s3.status_code == 200
+        assert s3.json()["interval_days"] == 3
+
+        # Step 4 => 7 days
+        db = TestSession()
+        card = db.query(ReviewCard).filter(ReviewCard.id == card_id).first()
+        card.due_date = utc_now_naive()
+        db.commit()
+        db.close()
+        s4 = client.post("/api/review/submit",
+                         json={"card_id": card_id, "result": "good"},
+                         headers=auth_headers(student_token))
+        assert s4.status_code == 200
+        assert s4.json()["interval_days"] == 7
+
+        # Step 5 => 14-28 days (reported as representative 21 days)
+        db = TestSession()
+        card = db.query(ReviewCard).filter(ReviewCard.id == card_id).first()
+        card.due_date = utc_now_naive()
+        db.commit()
+        db.close()
+        s5 = client.post("/api/review/submit",
+                         json={"card_id": card_id, "result": "good"},
+                         headers=auth_headers(student_token))
+        assert s5.status_code == 200
+        assert s5.json()["interval_days"] == 21
 
 
 # ════════════════════════════════════════════════════════════

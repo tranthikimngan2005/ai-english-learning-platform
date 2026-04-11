@@ -1,6 +1,5 @@
 import random
 from typing import Optional
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -14,7 +13,12 @@ from app.schemas.schemas import (
     SubmitAnswerRequest, SubmitAnswerResponse,
     PracticeSessionRequest, PracticeSessionResponse,
 )
-from app.services.spaced_repetition import level_up_check, next_level
+from app.services.spaced_repetition import (
+    interval_days_for_step,
+    level_up_check,
+    next_level,
+    schedule_due_for_step,
+)
 from app.services.streak import update_streak
 
 router = APIRouter(prefix="/api/questions", tags=["Questions"])
@@ -196,15 +200,23 @@ def submit_answer(
                 profile.questions_done = 0
                 profile.questions_correct = 0
 
-    # Add / update spaced repetition card
-    card = (
-        db.query(ReviewCard)
-        .filter(ReviewCard.user_id == current_user.id, ReviewCard.question_id == question.id)
-        .first()
-    )
-    if not card:
-        card = ReviewCard(user_id=current_user.id, question_id=question.id)
-        db.add(card)
+    # Only wrong answers are queued for recommendation/review.
+    if not is_correct:
+        card = (
+            db.query(ReviewCard)
+            .filter(ReviewCard.user_id == current_user.id, ReviewCard.question_id == question.id)
+            .first()
+        )
+        if not card:
+            card = ReviewCard(
+                user_id=current_user.id,
+                question_id=question.id,
+            )
+            db.add(card)
+
+        card.repetitions = 1
+        card.interval_days = interval_days_for_step(card.repetitions)
+        card.due_date = schedule_due_for_step(card.repetitions)
 
     # Update streak
     update_streak(db, current_user)

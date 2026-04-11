@@ -96,6 +96,7 @@ export const reviewApi = {
 export const chatApi = {
   history:      ()      => api.get('/api/chat/history'),
   send:         (content) => api.post('/api/chat/send', { content }),
+  generate:     (content, system_prompt) => api.post('/api/chat/generate', { content, system_prompt }),
   saveAI:       (content) => api.post('/api/chat/ai-response', { content }),
   systemPrompt: ()      => api.get('/api/chat/system-prompt'),
   clear:        ()      => api.delete('/api/chat/history'),

@@ -5,7 +5,11 @@ from app.core.security import get_current_user
 from app.core.time import utc_now_naive
 from app.models.user import User, ReviewCard
 from app.schemas.schemas import ReviewCardOut, ReviewSubmitRequest, ReviewSubmitResponse
-from app.services.spaced_repetition import calculate_next_review
+from app.services.spaced_repetition import (
+    interval_days_for_step,
+    next_step_for_result,
+    schedule_due_for_step,
+)
 
 router = APIRouter(prefix="/api/review", tags=["Review"])
 
@@ -42,17 +46,11 @@ def submit_review(
     if not card:
         raise HTTPException(404, "Review card not found")
 
-    new_interval, new_ease, new_reps, due_date = calculate_next_review(
-        interval=card.interval_days,
-        ease_factor=card.ease_factor,
-        repetitions=card.repetitions,
-        result=payload.result,
-    )
-
-    card.interval_days = new_interval
-    card.ease_factor = new_ease
-    card.repetitions = new_reps
-    card.due_date = due_date
+    current_step = max(card.repetitions, 1)
+    next_step = next_step_for_result(current_step, payload.result)
+    card.repetitions = next_step
+    card.interval_days = interval_days_for_step(next_step)
+    card.due_date = schedule_due_for_step(next_step)
     card.last_reviewed = utc_now_naive()
 
     db.commit()

@@ -1,7 +1,10 @@
 """
-SM-2 Spaced Repetition algorithm.
-Grades: again=0, hard=1, good=3, easy=5
+Spaced repetition scheduling.
+
+This module keeps SM-2 utilities for legacy tests and level progression,
+and adds a fixed 5-step schedule for wrong-answer recommendation cards.
 """
+import random
 from datetime import datetime, timedelta
 from app.models.user import ReviewResultEnum
 from app.core.time import utc_now_naive
@@ -12,6 +15,61 @@ GRADE_MAP = {
     ReviewResultEnum.good:  3,
     ReviewResultEnum.easy:  5,
 }
+
+# Fixed schedule for wrong-answer cards:
+# 1) 10-30 minutes
+# 2) 1 day
+# 3) 3 days
+# 4) 7 days
+# 5) 14-28 days
+MAX_REVIEW_STEP = 5
+
+
+def _first_step_delta() -> timedelta:
+    return timedelta(minutes=random.randint(10, 30))
+
+
+def _step_delta(step: int) -> timedelta:
+    if step <= 1:
+        return _first_step_delta()
+    if step == 2:
+        return timedelta(days=1)
+    if step == 3:
+        return timedelta(days=3)
+    if step == 4:
+        return timedelta(days=7)
+    # step >= 5
+    return timedelta(days=random.randint(14, 28))
+
+
+def schedule_due_for_step(step: int) -> datetime:
+    normalized = min(max(step, 1), MAX_REVIEW_STEP)
+    return utc_now_naive() + _step_delta(normalized)
+
+
+def next_step_for_result(current_step: int, result: ReviewResultEnum) -> int:
+    """
+    On `again`, restart to step 1. Otherwise, advance one step up to step 5.
+    """
+    if result == ReviewResultEnum.again:
+        return 1
+    return min(max(current_step, 1) + 1, MAX_REVIEW_STEP)
+
+
+def interval_days_for_step(step: int) -> int:
+    """
+    Backward-compatible day indicator for existing UI.
+    Step 1 is minute-based so represented as 0 days.
+    """
+    if step <= 1:
+        return 0
+    if step == 2:
+        return 1
+    if step == 3:
+        return 3
+    if step == 4:
+        return 7
+    return 21
 
 
 def calculate_next_review(

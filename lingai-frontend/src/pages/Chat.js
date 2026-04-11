@@ -1,16 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { chatApi } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { IMG_CHAT, IMG_GRAMMAR } from '../assets/images';
 import './Chat.css';
-
-const SYSTEM_PROMPT = `You are Pengwin, a friendly English language tutor AI shaped like a penguin.
-When the user writes in English:
-1. Identify and correct grammar/spelling errors clearly.
-2. Suggest a better, more natural version of their sentence.
-3. Briefly explain why the correction is needed.
-4. Keep your tone encouraging, warm, and use occasional 🐧 emoji.
-Format: ❌ error → ✅ correction`;
 
 const SUGGESTIONS = [
   'Yesterday I go to school with my friend.',
@@ -19,42 +11,6 @@ const SUGGESTIONS = [
   'He don\'t know the answer.',
 ];
 
-function buildTutorReply(text) {
-  const trimmed = text.trim();
-  if (!trimmed) {
-    return 'Please send a sentence and I will help you improve it.';
-  }
-
-  const replacements = [
-    { from: /\bI go\b/gi, to: 'I went' },
-    { from: /\bHe don\'t\b/gi, to: "He doesn't" },
-    { from: /\bShe don\'t\b/gi, to: "She doesn't" },
-    { from: /\bmore taller\b/gi, to: 'taller' },
-    { from: /\bmore better\b/gi, to: 'better' },
-    { from: /\blast year\b/gi, to: 'last year' },
-  ];
-
-  let corrected = trimmed;
-  replacements.forEach(({ from, to }) => {
-    corrected = corrected.replace(from, to);
-  });
-
-  if (!/[.!?]$/.test(corrected)) corrected += '.';
-
-  if (corrected === trimmed) {
-    return [
-      '✅ Your sentence looks good!',
-      `💡 Natural version: ${corrected}`,
-      'Great job. Keep practicing and try adding one more detail to make it richer.'
-    ].join('\n');
-  }
-
-  return [
-    `❌ ${trimmed}`,
-    `✅ ${corrected}`,
-    'Why: I fixed common grammar patterns (tense/verb agreement/comparative form) to make the sentence more natural.'
-  ].join('\n');
-}
 
 function Message({ msg }) {
   const isUser = msg.role==='user';
@@ -95,16 +51,14 @@ export default function Chat() {
   },[toast]);
   useEffect(()=>{ setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:'smooth'}),50); },[messages,typing]);
 
-  const callAI = useCallback(async (history) => {
+  const callAI = async (text) => {
     setTyping(true);
     try {
-      const latestUserMessage = [...history].reverse().find(m => m.role === 'user');
-      const text = buildTutorReply(latestUserMessage?.content || '');
-      const saved = await chatApi.saveAI(text);
+      const saved = await chatApi.generate(text);
       setMessages(prev=>[...prev,saved]);
     } catch(e) { toast(e.message || 'Không thể lưu phản hồi AI','error'); }
     finally { setTyping(false); }
-  },[toast]);
+  };
 
   const handleSend = async () => {
     const text = input.trim();
@@ -112,9 +66,8 @@ export default function Chat() {
     setInput('');
     try {
       const saved = await chatApi.send(text);
-      const newH  = [...messages, saved];
-      setMessages(newH);
-      await callAI(newH);
+      setMessages(prev => [...prev, saved]);
+      await callAI(text);
     } catch(e) { toast(e.message,'error'); }
   };
 
@@ -158,11 +111,11 @@ export default function Chat() {
       </div>
 
       <div className="chat-input-area">
-        <textarea className="chat-textarea"
-          placeholder="Viết câu tiếng Anh... (Enter gửi, Shift+Enter xuống dòng)"
+        <input className="chat-textarea"
+          placeholder="Nhập 1 dòng lệnh... ví dụ: viết đoạn văn tiếng Anh về du lịch"
           value={input} onChange={e=>setInput(e.target.value)}
-          onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}}}
-          rows={2} disabled={typing} />
+          onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleSend();}}}
+          disabled={typing} />
         <button className="btn btn-primary chat-send" onClick={handleSend} disabled={!input.trim()||typing}>
           {typing?<span className="spinner"/>:'↑'}
         </button>

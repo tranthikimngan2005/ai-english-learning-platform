@@ -1,15 +1,7 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { chatApi } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import './Chat.css';
-
-const SYSTEM_PROMPT = `You are an English language tutor AI.
-When the user writes in English:
-1. Identify and correct grammar/spelling errors clearly.
-2. Suggest a better, more natural version of their sentence.
-3. Briefly explain why the correction is needed.
-4. Keep your tone encouraging and friendly.
-Format corrections clearly with ❌ for errors and ✅ for corrections.`;
 
 function Message({ msg }) {
   const isUser = msg.role === 'user';
@@ -47,6 +39,7 @@ export default function Chat() {
   const [loading,  setLoading]  = useState(true);
   const [typing,   setTyping]   = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState('');
 
   const scrollDown = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
@@ -57,33 +50,25 @@ export default function Chat() {
       .finally(() => setLoading(false));
   }, [toast]);
 
+  useEffect(() => {
+    chatApi.systemPrompt()
+      .then((res) => setSystemPrompt(res.system_prompt || ''))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => { scrollDown(); }, [messages, typing]);
 
-  const callAI = useCallback(async (history) => {
+  const callAI = async (text) => {
     setTyping(true);
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: history.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
-        }),
-      });
-      const data = await res.json();
-      const aiText = data.content?.[0]?.text || 'Sorry, I could not generate a response.';
-
-      // Save AI response to backend
-      const saved = await chatApi.saveAI(aiText);
+      const saved = await chatApi.generate(text, systemPrompt);
       setMessages(prev => [...prev, saved]);
     } catch (e) {
-      toast('Không thể kết nối AI. Hãy đảm bảo backend đang chạy.', 'error');
+      toast('Không thể tạo phản hồi AI từ backend.', 'error');
     } finally {
       setTyping(false);
     }
-  }, [toast]);
+  };
 
   const handleSend = async () => {
     const text = input.trim();
@@ -92,9 +77,8 @@ export default function Chat() {
 
     try {
       const saved = await chatApi.send(text);
-      const newHistory = [...messages, saved];
-      setMessages(newHistory);
-      await callAI(newHistory);
+      setMessages(prev => [...prev, saved]);
+      await callAI(text);
     } catch (e) {
       toast(e.message, 'error');
     }
@@ -167,6 +151,15 @@ export default function Chat() {
 
       {/* Input */}
       <div className="chat-input-area">
+        <textarea
+          className="chat-textarea"
+          placeholder="System prompt (tùy chỉnh cách AI trả lời)."
+          value={systemPrompt}
+          onChange={e => setSystemPrompt(e.target.value)}
+          rows={2}
+          disabled={typing}
+          style={{ marginBottom: 10, opacity: 0.95 }}
+        />
         <textarea
           ref={inputRef}
           className="chat-textarea"

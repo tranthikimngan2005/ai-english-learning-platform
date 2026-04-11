@@ -225,6 +225,7 @@ class DashboardResponse(BaseModel):
 
 class ChatMessageIn(BaseModel):
     content: str
+    system_prompt: Optional[str] = None
 
 
 class ChatMessageOut(BaseModel):
