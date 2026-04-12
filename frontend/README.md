@@ -79,7 +79,3 @@ Trang Chat gá»i trá»±c tiáº¿p `https://api.anthropic.com/v1/messages`.
 Trong mÃ´i trÆ°á»ng production, cáº§n proxy qua backend Ä‘á»ƒ báº£o vá»‡ API key.
 Hiá»‡n táº¡i backend cung cáº¥p endpoint `/api/chat/system-prompt` Ä‘á»ƒ láº¥y system prompt.
 
-
-
-cÃ¡ch cháº¡y: di chuyá»ƒn vÃ o folder frontend >> npm install >> npm start
-

@@ -1,4 +1,5 @@
 ﻿const BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const REQUEST_TIMEOUT_MS = 8000;
 
 function getToken() {
   return localStorage.getItem('pengwin_token');
@@ -10,18 +11,32 @@ async function request(method, path, body, opts = {}) {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (opts.formData) delete headers['Content-Type'];
 
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: opts.formData ? body : body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      body: opts.formData ? body : body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error('Request timeout. Please check backend server and try again.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (res.status === 204) return null;
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) {
-      // Clear stale token so protected screens can redirect to login.
+      // Drop stale credentials so protected views can redirect cleanly.
       localStorage.removeItem('pengwin_token');
     }
     const msg = data.detail || data.message || `HTTP ${res.status}`;
@@ -108,9 +123,7 @@ export const adminApi = {
   users:           ()           => api.get('/api/admin/users'),
   changeRole:      (id, role)   => api.patch(`/api/admin/users/${id}/role`, { role }),
   ban:             (id, active) => api.patch(`/api/admin/users/${id}/ban`, { is_active: active }),
-  pendingQuestions:()           => api.get('/api/admin/content/pending/questions'),
   pendingLessons:  ()           => api.get('/api/admin/content/pending/lessons'),
-  moderateQ:       (id, status) => api.patch(`/api/questions/${id}/moderate`, { status }),
   moderateL:       (id, status) => api.patch(`/api/lessons/${id}/moderate`, { status }),
 };
 

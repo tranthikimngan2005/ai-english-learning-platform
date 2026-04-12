@@ -16,21 +16,33 @@ import CreatorQuestions from './pages/CreatorQuestions';
 import CreatorLessons   from './pages/CreatorLessons';
 import AdminDashboard   from './pages/AdminDashboard';
 import AdminUsers       from './pages/AdminUsers';
-import AdminContent     from './pages/AdminContent';
+
+function roleHome(role) {
+  if (role === 'admin') return '/admin';
+  if (role === 'creator') return '/creator/questions';
+  return '/dashboard';
+}
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading-page"><div className="spinner spinner-lg"/></div>;
+  if (loading) return <div className="loading-page"><div className="spinner spinner-lg"/><span>Loading...</span></div>;
   if (!user)   return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to={roleHome(user.role)} replace />;
   return <Layout>{children}</Layout>;
 }
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading-page"><div className="spinner spinner-lg"/></div>;
-  if (user)    return <Navigate to="/dashboard" replace />;
+  if (loading) return <div className="loading-page"><div className="spinner spinner-lg"/><span>Loading...</span></div>;
+  if (user)    return <Navigate to={roleHome(user.role)} replace />;
   return children;
+}
+
+function RoleHomeRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="loading-page"><div className="spinner spinner-lg"/><span>Loading...</span></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={roleHome(user.role)} replace />;
 }
 
 function AppRoutes() {
@@ -40,21 +52,21 @@ function AppRoutes() {
       <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
-      {/* Student (all logged-in users) */}
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/skills"    element={<ProtectedRoute><Skills /></ProtectedRoute>} />
-      <Route path="/practice"  element={<ProtectedRoute><Practice /></ProtectedRoute>} />
-      <Route path="/review"    element={<ProtectedRoute><Review /></ProtectedRoute>} />
-      <Route path="/progress"  element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-      <Route path="/chat"      element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-      <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      {/* Student only */}
+      <Route path="/dashboard" element={<ProtectedRoute roles={['student']}><Dashboard /></ProtectedRoute>} />
+      <Route path="/skills"    element={<ProtectedRoute roles={['student']}><Skills /></ProtectedRoute>} />
+      <Route path="/practice"  element={<ProtectedRoute roles={['student']}><Practice /></ProtectedRoute>} />
+      <Route path="/review"    element={<ProtectedRoute roles={['student']}><Review /></ProtectedRoute>} />
+      <Route path="/progress"  element={<ProtectedRoute roles={['student']}><Progress /></ProtectedRoute>} />
+      <Route path="/chat"      element={<ProtectedRoute roles={['student']}><Chat /></ProtectedRoute>} />
+      <Route path="/profile"   element={<ProtectedRoute roles={['student']}><Profile /></ProtectedRoute>} />
 
-      {/* Creator + Admin */}
+      {/* Creator only */}
       <Route path="/creator/questions" element={
-        <ProtectedRoute roles={['creator','admin']}><CreatorQuestions /></ProtectedRoute>
+        <ProtectedRoute roles={['creator']}><CreatorQuestions /></ProtectedRoute>
       }/>
       <Route path="/creator/lessons" element={
-        <ProtectedRoute roles={['creator','admin']}><CreatorLessons /></ProtectedRoute>
+        <ProtectedRoute roles={['creator']}><CreatorLessons /></ProtectedRoute>
       }/>
 
       {/* Admin only */}
@@ -64,12 +76,9 @@ function AppRoutes() {
       <Route path="/admin/users" element={
         <ProtectedRoute roles={['admin']}><AdminUsers /></ProtectedRoute>
       }/>
-      <Route path="/admin/content" element={
-        <ProtectedRoute roles={['admin']}><AdminContent /></ProtectedRoute>
-      }/>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<RoleHomeRedirect />} />
     </Routes>
   );
 }

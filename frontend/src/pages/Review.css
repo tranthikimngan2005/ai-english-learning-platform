@@ -1,49 +1,22 @@
-/* ── Review ── */
-.review-idle { max-width: 520px; }
-.idle-card { padding: 36px; text-align: center; }
-.idle-count { font-family: var(--font-serif); font-size: 64px; color: var(--accent); line-height: 1; margin-bottom: 6px; }
-.idle-label { font-size: 16px; color: var(--text); margin-bottom: 4px; }
-.idle-est   { font-size: 13px; color: var(--text3); margin-bottom: 24px; }
-.idle-cards-preview { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; text-align: left; }
-.idle-preview-item {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--bg3); border-radius: var(--radius); padding: 10px 12px;
-}
-.idle-preview-text { flex: 1; font-size: 13px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.review-header {
-  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
-}
-.review-card {
-  padding: 32px; margin-bottom: 20px;
-  display: flex; flex-direction: column; gap: 16px;
-}
-.review-badges { display: flex; gap: 6px; }
-.review-q { font-size: 17px; color: var(--text); line-height: 1.7; }
-.review-answer {
-  background: var(--bg3); border-radius: var(--radius);
-  padding: 16px; border-left: 3px solid var(--accent);
-}
-.answer-label  { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
-.answer-text   { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
-.answer-explain { font-size: 13px; color: var(--text2); line-height: 1.6; }
-
-.grade-row { margin-top: 4px; }
-.grade-btns { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-.grade-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 14px 8px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all var(--trans);
-  font-family: var(--font);
-}
-.grade-btn:hover:not(:disabled) {
-  border-color: var(--g-color);
-  background: color-mix(in srgb, var(--g-color) 12%, transparent);
-  transform: translateY(-2px);
-}
-.grade-label { font-size: 14px; font-weight: 600; color: var(--g-color); }
-.grade-sub   { font-size: 11px; color: var(--text3); }
+.review-idle { max-width:500px; }
+.idle-card { padding:32px;text-align:center; }
+.idle-mascot { width:90px;animation:float 3s ease-in-out infinite;margin-bottom:12px; }
+.idle-count { font-family:var(--font-head);font-size:64px;color:var(--ocean);line-height:1;margin-bottom:4px; }
+.idle-label { font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px; }
+.idle-est   { font-size:13px;color:var(--text3);font-weight:600;margin-bottom:20px; }
+.idle-preview { display:flex;flex-direction:column;gap:8px;margin-bottom:22px;text-align:left; }
+.idle-preview-item { display:flex;align-items:center;gap:10px;background:var(--sky);border-radius:var(--radius);padding:10px 12px; }
+.idle-preview-text { flex:1;font-size:13px;color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.review-header { display:flex;align-items:center;gap:16px;margin-bottom:18px; }
+.review-card { padding:28px;margin-bottom:18px;display:flex;flex-direction:column;gap:14px; }
+.review-q { font-size:17px;font-weight:700;color:var(--navy);line-height:1.7; }
+.review-answer { background:var(--sky);border-radius:var(--radius);padding:16px;border-left:4px solid var(--mint); }
+.answer-label  { font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--mint2);margin-bottom:8px; }
+.answer-text   { font-size:16px;font-weight:700;color:var(--navy);margin-bottom:5px; }
+.answer-explain{ font-size:13px;color:var(--text2);font-weight:600;line-height:1.6; }
+.grade-row { margin-top:4px; }
+.grade-btns { display:grid;grid-template-columns:repeat(4,1fr);gap:10px; }
+.grade-btn { display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 8px;background:white;border:2px solid var(--sky2);border-radius:var(--radius);cursor:pointer;transition:all var(--trans);font-family:var(--font-body); }
+.grade-btn:not(:disabled):hover { border-color:var(--gc);background:color-mix(in srgb,var(--gc) 10%,transparent);transform:translateY(-2px); }
+.grade-label { font-size:14px;font-weight:800;color:var(--gc); }
+.grade-sub   { font-size:11px;color:var(--text3);font-weight:600; }

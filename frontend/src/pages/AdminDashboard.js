@@ -1,51 +1,44 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { IMG_HERO, IMG_GRAMMAR, IMG_PROGRESS } from '../assets/images';
 import './Admin.css';
 
 export default function AdminDashboard() {
-  const toast = useToast();
-  const [stats,   setStats]   = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    adminApi.stats().then(setStats).catch(e=>toast(e.message,'error')).finally(()=>setLoading(false));
-  }, [toast]);
+  const toast=useToast();
+  const [stats,setStats]=useState(null);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{adminApi.stats().then(setStats).catch(e=>toast(e.message,'error')).finally(()=>setLoading(false));}, [toast]);
 
   if (loading) return <div className="loading-page"><div className="spinner spinner-lg"/></div>;
 
-  const cards = [
-    { label:'Tổng users',          value: stats?.total_users,       cls:'' },
-    { label:'Users mới (7 ngày)',  value: stats?.active_users_7d,   cls:'accent' },
-    { label:'Tổng câu hỏi',        value: stats?.total_questions,   cls:'' },
-    { label:'Chờ duyệt (câu hỏi)',value: stats?.pending_questions, cls:'warning' },
-    { label:'Tổng bài học',        value: stats?.total_lessons,     cls:'' },
-    { label:'Chờ duyệt (bài học)', value: stats?.pending_lessons,   cls:'warning' },
+  const cards=[
+    {img:IMG_HERO,     label:'Total users',           value:stats?.total_users,       cls:'accent'},
+    {img:IMG_HERO,     label:'New users (7 days)',    value:stats?.active_users_7d,   cls:'mint'},
+    {img:IMG_GRAMMAR,  label:'Total questions',       value:stats?.total_questions,   cls:''},
   ];
 
   return (
     <div className="fade-up">
       <div className="page-header">
-        <h1 className="page-title">Admin Dashboard</h1>
-        <p className="page-sub">Tổng quan hệ thống Pengwin</p>
+        <h1 className="page-title">🛡️ Admin Dashboard</h1>
+        <p className="page-sub">Pengwin system overview</p>
       </div>
-
-      <div className="grid-3" style={{marginBottom:32}}>
-        {cards.map(c=>(
-          <div key={c.label} className="stat-card">
-            <div className="stat-label">{c.label}</div>
-            <div className={`stat-value ${c.cls}`}>{c.value ?? '—'}</div>
+      <div className="grid-3" style={{marginBottom:28}}>
+        {cards.map((c,i)=>(
+          <div key={i} className="stat-card" style={{animationDelay:`${i*0.07}s`}}>
+            <img className="stat-card-img" src={c.img} alt="" style={{animation:`float ${3+i*0.2}s ease-in-out infinite`}}/>
+            <div>
+              <div className="stat-label">{c.label}</div>
+              <div className={`stat-value ${c.cls}`}>{c.value??'—'}</div>
+            </div>
           </div>
         ))}
       </div>
-
-      <div className="admin-quick-nav">
-        <p style={{fontSize:12,fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:12}}>
-          Điều hướng nhanh
-        </p>
+      <div className="admin-quick-nav card">
+        <p style={{fontSize:12,fontWeight:800,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:12}}>⚡ Quick navigation</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <a href="/admin/users"   className="btn btn-secondary">⬡ Quản lý users</a>
-          <a href="/admin/content" className="btn btn-secondary">⬡ Duyệt nội dung</a>
+          <a href="/admin/users"   className="btn btn-secondary">👥 Manage users</a>
         </div>
       </div>
     </div>

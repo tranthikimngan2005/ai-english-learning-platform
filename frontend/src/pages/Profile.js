@@ -1,99 +1,140 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { userApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { IMG_VOCAB, IMG_LISTEN, IMG_GRAMMAR, IMG_CHAT, IMG_STREAK, IMG_PROGRESS } from '../assets/images';
 import './Profile.css';
 
 const SKILL_META = {
-  reading:   { icon:'📖', color:'#2dd4a0' },
-  listening: { icon:'🎧', color:'#60a5fa' },
-  writing:   { icon:'✍️', color:'#a78bfa' },
-  speaking:  { icon:'🗣️', color:'#fb923c' },
+  reading:   { img:IMG_VOCAB,   color:'#2196b0' },
+  listening: { img:IMG_LISTEN,  color:'#ff8c42' },
+  writing:   { img:IMG_GRAMMAR, color:'#9b6ff5' },
+  speaking:  { img:IMG_CHAT,    color:'#4ecb8d' },
 };
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, setAvatar, clearAvatar } = useAuth();
   const toast = useToast();
+  const fileRef = useRef(null);
   const [dash,    setDash]    = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const onPickAvatar = () => fileRef.current?.click();
+
+  const onAvatarFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast('Please choose an image file', 'error');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast('Avatar must be smaller than 2MB', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatar(reader.result);
+      toast('Avatar updated!');
+      e.target.value = '';
+    };
+    reader.onerror = () => {
+      toast('Cannot read this file', 'error');
+      e.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
   useEffect(() => {
     userApi.dashboard()
       .then(setDash)
-      .catch(e => toast(e.message, 'error'))
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, []);
 
-  if (loading) return <div className="loading-page"><div className="spinner spinner-lg" /></div>;
-
-  const streak  = dash?.streak;
-  const profiles = dash?.skill_profiles || [];
+  if (loading) return <div className="loading-page"><div className="spinner spinner-lg"/></div>;
+  const streak   = dash?.streak;
+  const profiles = dash?.skill_profiles||[];
 
   return (
     <div className="fade-up">
       <div className="page-header">
-        <h1 className="page-title">Profile</h1>
+        <h1 className="page-title">🐧 Profile</h1>
       </div>
-
-      {/* Profile card */}
       <div className="profile-hero card">
-        <div className="profile-avatar-lg">
-          {user?.username?.[0]?.toUpperCase()}
+        <div className="profile-avatar-block">
+          <div className="profile-avatar-lg">
+            {user?.avatar ? (
+              <img src={user.avatar} alt="avatar" />
+            ) : (
+              user?.username?.[0]?.toUpperCase()
+            )}
+          </div>
+          <div className="profile-avatar-actions">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              onChange={onAvatarFileChange}
+              style={{ display: 'none' }}
+            />
+            <button className="btn btn-secondary btn-sm" onClick={onPickAvatar}>Change avatar</button>
+            {user?.avatar && (
+              <button className="btn btn-ghost btn-sm" onClick={() => { clearAvatar(); toast('Avatar removed'); }}>
+                Remove
+              </button>
+            )}
+          </div>
         </div>
         <div className="profile-info">
           <h2 className="profile-name">{user?.username}</h2>
-          <p className="profile-email">{user?.email || '—'}</p>
-          <div style={{ display:'flex', gap:8, marginTop:8 }}>
-            <span className={`badge badge-${user?.role === 'admin' ? 'yellow' : user?.role === 'creator' ? 'blue' : 'green'}`}>
-              {user?.role}
-            </span>
-            <span className="badge badge-gray">ID #{user?.id}</span>
+          <p className="profile-email">{user?.email||'—'}</p>
+          <div style={{display:'flex',gap:8,marginTop:8}}>
+            <span className={`badge badge-${user?.role==='admin'?'yellow':user?.role==='creator'?'blue':'green'}`}>{user?.role}</span>
           </div>
         </div>
         <div className="profile-streak">
-          <div className="streak-fire">🔥</div>
-          <div className="streak-count">{streak?.current_streak ?? 0}</div>
-          <div className="streak-label">day streak</div>
-          {streak?.longest_streak > 0 && (
-            <div className="streak-best">Best: {streak.longest_streak} days</div>
-          )}
+          <img src={IMG_STREAK} alt="streak" className="profile-streak-img" />
+          <div>
+            <div style={{fontFamily:'var(--font-head)',fontSize:32,color:'#ff6b35',lineHeight:1}}>{streak?.current_streak??0}</div>
+            <div style={{fontSize:11,fontWeight:800,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Current streak</div>
+            {streak?.longest_streak>0 && <div style={{fontSize:11,color:'var(--text3)',fontWeight:600,marginTop:4}}>Best: {streak.longest_streak}d</div>}
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid-3" style={{ marginBottom:24 }}>
+      <div className="grid-3" style={{marginBottom:24}}>
         <div className="stat-card">
-          <div className="stat-label">Tổng câu đã làm</div>
-          <div className="stat-value">{dash?.total_questions_done ?? 0}</div>
+          <img className="stat-card-img" src={IMG_PROGRESS} alt="" style={{animation:'float 3s ease-in-out infinite'}} />
+          <div><div className="stat-label">Total questions done</div><div className="stat-value">{dash?.total_questions_done??0}</div></div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Thẻ cần ôn hôm nay</div>
-          <div className="stat-value warning">{dash?.due_reviews ?? 0}</div>
+          <img className="stat-card-img" src={IMG_LISTEN} alt="" style={{animation:'float 3.3s ease-in-out infinite'}} />
+          <div><div className="stat-label">Review cards today</div><div className="stat-value warning">{dash?.due_reviews??0}</div></div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Streak dài nhất</div>
-          <div className="stat-value accent">{streak?.longest_streak ?? 0} ngày</div>
+          <img className="stat-card-img" src={IMG_STREAK} alt="" style={{animation:'float 2.8s ease-in-out infinite'}} />
+          <div><div className="stat-label">Longest streak</div><div className="stat-value accent">{streak?.longest_streak??0}</div></div>
         </div>
       </div>
 
-      {/* Skill levels */}
-      <div className="section-label">Kỹ năng</div>
-      <div className="skill-level-grid">
-        {profiles.map(p => {
-          const meta = SKILL_META[p.skill];
-          const pct  = p.questions_done === 0 ? 0
-            : Math.round(p.questions_correct / Math.max(p.questions_done, 1) * 100);
+      <div className="section-title">⭐ Skills</div>
+      <div className="grid-4">
+        {profiles.map(p=>{
+          const m=SKILL_META[p.skill];
+          const pct=p.questions_done===0?0:Math.round(p.questions_correct/Math.max(p.questions_done,1)*100);
           return (
-            <div key={p.skill} className="skill-level-card card">
-              <div className="slc-top">
-                <span style={{ fontSize:24 }}>{meta.icon}</span>
-                <span className="slc-level" style={{ color: meta.color }}>{p.current_level}</span>
+            <div key={p.skill} className="card" style={{textAlign:'center',padding:18}}>
+              <img className="penguin-cutout" src={m.img} style={{width:56,height:56,objectFit:'contain',animation:'float 3s ease-in-out infinite',marginBottom:8}} alt="" />
+              <div style={{fontFamily:'var(--font-head)',fontSize:22,color:m.color}}>{p.current_level}</div>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--text2)',textTransform:'capitalize',marginBottom:8}}>{p.skill}</div>
+              <div className="progress-wrap">
+                <div className="progress-fill" style={{width:`${pct}%`,background:m.color}} />
               </div>
-              <div className="slc-name" style={{ textTransform:'capitalize' }}>{p.skill}</div>
-              <div className="progress-wrap" style={{ margin:'10px 0 6px' }}>
-                <div className="progress-fill" style={{ width:`${pct}%`, background: meta.color }} />
-              </div>
-              <div className="slc-stats">{p.questions_done} câu · {pct}% đúng</div>
+              <div style={{fontSize:11,color:'var(--text3)',fontWeight:600,marginTop:5}}>{pct}% · {p.questions_done} questions</div>
             </div>
           );
         })}

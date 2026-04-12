@@ -1,109 +1,173 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { userApi } from '../api/client';
+import { userApi, chatApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { IMG_HERO, IMG_STREAK, IMG_VOCAB, IMG_LISTEN, IMG_GRAMMAR, IMG_CHAT, IMG_PROGRESS } from '../assets/images';
 import './Dashboard.css';
 
 const SKILL_META = {
-  reading:   { icon: '📖', color: '#2dd4a0', label: 'Reading' },
-  listening: { icon: '🎧', color: '#60a5fa', label: 'Listening' },
-  writing:   { icon: '✍️', color: '#a78bfa', label: 'Writing' },
-  speaking:  { icon: '🗣️', color: '#fb923c', label: 'Speaking' },
+  reading:   { img:IMG_VOCAB,    color:'#2196b0', label:'Reading' },
+  listening: { img:IMG_LISTEN,   color:'#ff8c42', label:'Listening' },
+  writing:   { img:IMG_GRAMMAR,  color:'#9b6ff5', label:'Writing' },
+  speaking:  { img:IMG_CHAT,     color:'#4ecb8d', label:'Speaking' },
 };
 
-const LEVEL_PROGRESS = { A1:0, A2:1, B1:2, B2:3, C1:4, C2:5 };
-const LEVEL_LABELS   = ['A1','A2','B1','B2','C1','C2'];
-
-function SkillCard({ profile, onClick }) {
-  const meta = SKILL_META[profile.skill];
-  const pct  = profile.questions_done === 0 ? 0
-    : Math.min(100, Math.round((profile.questions_correct / Math.max(profile.questions_done,1)) * 100));
+function SkillCard({ p, onClick }) {
+  const m = SKILL_META[p.skill];
+  const pct = p.questions_done === 0 ? 0
+    : Math.min(100, Math.round(p.questions_correct / Math.max(p.questions_done,1) * 100));
   return (
-    <div className="skill-card" onClick={onClick} style={{ '--accent-skill': meta.color }}>
+    <div className="skill-card" style={{'--sc': m.color}} onClick={onClick}>
       <div className="skill-card-top">
-        <span className="skill-icon">{meta.icon}</span>
-        <span className="badge" style={{ background: `${meta.color}20`, color: meta.color, fontSize: 11 }}>
-          {profile.current_level}
-        </span>
+        <img src={m.img} className="skill-card-img" alt={p.skill} />
+        <span className="badge" style={{background:`${m.color}22`, color:m.color}}>{p.current_level}</span>
       </div>
-      <div className="skill-name">{meta.label}</div>
-      <div className="skill-sub">{profile.questions_done} câu đã làm</div>
-      <div className="progress-wrap" style={{ marginTop: 10 }}>
-        <div className="progress-fill" style={{ width: `${pct}%`, background: meta.color }} />
+      <div className="skill-card-name">{m.label}</div>
+      <div className="skill-card-sub">{p.questions_done} questions done</div>
+      <div className="progress-wrap" style={{marginTop:8}}>
+        <div className="progress-fill" style={{width:`${pct}%`, background:m.color}} />
       </div>
-      <div className="skill-pct">{pct}% accuracy</div>
+      <div className="skill-card-pct">{pct}% accuracy</div>
     </div>
   );
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const toast = useToast();
+  const { user }  = useAuth();
+  const navigate  = useNavigate();
   const [data, setData]     = useState(null);
+  const [chatDone, setChatDone] = useState(false);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    userApi.dashboard()
-      .then(setData)
-      .catch(e => toast(e.message, 'error'))
+    Promise.all([userApi.dashboard(), chatApi.history()])
+      .then(([dashboard, history]) => {
+        setData(dashboard);
+
+        const now = new Date();
+        const hasUserMessageToday = (history || []).some(m => {
+          if (m?.role !== 'user' || !m?.created_at) return false;
+          const d = new Date(m.created_at);
+          return (
+            d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()
+          );
+        });
+        setChatDone(hasUserMessageToday);
+      })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, []);
 
   const hour = new Date().getHours();
-  const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const greet = hour<12 ? 'Good morning' : hour<18 ? 'Good afternoon' : 'Good evening';
+
+  const profiles = data?.skill_profiles || [];
+  const readingDone = (profiles.find(p => p.skill === 'reading')?.questions_done || 0) > 0;
+  const listeningDone = (profiles.find(p => p.skill === 'listening')?.questions_done || 0) > 0;
+  const reviewDone = (data?.due_reviews ?? 0) === 0;
 
   if (loading) return (
-    <div className="loading-page"><div className="spinner spinner-lg" /><span>Đang tải...</span></div>
+    <div className="loading-page">
+      <img className="penguin-cutout" src={IMG_HERO} style={{width:80,animation:'float 3s ease-in-out infinite'}} alt="" />
+      <span>Loading...</span>
+    </div>
   );
 
   return (
     <div className="fade-up">
-      <div className="page-header">
-        <h1 className="page-title">{greet}, {user?.username} 👋</h1>
-        <p className="page-sub">Đừng để streak bị gián đoạn — hãy học ít nhất 1 bài hôm nay!</p>
+      {/* Hero banner */}
+      <div className="hero-banner">
+        <span className="hero-star sp1">⭐</span>
+        <span className="hero-star sp2">✨</span>
+        <span className="hero-star sp3">🌟</span>
+        <img className="hero-mascot" src={IMG_HERO} alt="Pengwin" />
+        <div className="hero-body">
+          <div className="hero-greeting">{greet}, <span>{user?.username}</span>! 👋</div>
+          <div className="hero-sub">
+            {data?.streak?.current_streak > 0
+              ? `🔥 Streak ${data.streak.current_streak} days — great work!`
+              : 'Start your first lesson today!'}
+          </div>
+          <div className="hero-stats">
+            {[
+              { n:data?.streak?.current_streak??0, l:'Streak' },
+              { n:data?.total_questions_done??0,   l:'Questions done' },
+              { n:data?.due_reviews??0,            l:'Review cards' },
+            ].map(s=>(
+              <div key={s.l} className="hero-stat">
+                <div className="hero-stat-num">{s.n}</div>
+                <div className="hero-stat-label">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Stats row */}
-      <div className="grid-3" style={{ marginBottom: 28 }}>
-        <div className="stat-card">
-          <div className="stat-label">🔥 Streak</div>
-          <div className="stat-value accent">{data?.streak?.current_streak ?? 0} ngày</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Tổng câu đã làm</div>
-          <div className="stat-value">{data?.total_questions_done ?? 0}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">📅 Cần ôn tập</div>
-          <div className="stat-value warning">{data?.due_reviews ?? 0} thẻ</div>
-        </div>
+      {/* Skill cards */}
+      <div className="section-title">⭐ Your skills</div>
+      <div className="grid-4" style={{marginBottom:26}}>
+        {profiles.map(p=>(
+          <SkillCard key={p.skill} p={p}
+            onClick={()=>navigate(`/practice?skill=${p.skill}`)} />
+        ))}
       </div>
 
-      {/* Skills */}
-      <div className="section-title">Kỹ năng của bạn</div>
-      <div className="grid-4" style={{ marginBottom: 28 }}>
-        {(data?.skill_profiles || []).map(p => (
-          <SkillCard key={p.skill} profile={p}
-            onClick={() => navigate(`/practice?skill=${p.skill}`)} />
+      {/* Today tasks */}
+      <div className="section-title">📋 Today&apos;s tasks</div>
+      <div className="tasks-card">
+        {[
+          {
+            done: readingDone,
+            label: 'Reading — Practice',
+            badge: readingDone ? 'Done' : 'Not done',
+            bc: readingDone ? 'badge-green' : 'badge-orange',
+          },
+          {
+            done: listeningDone,
+            label: 'Listening — Practice',
+            badge: listeningDone ? 'Done' : 'Not done',
+            bc: listeningDone ? 'badge-green' : 'badge-orange',
+          },
+          {
+            done: reviewDone,
+            label: `Review — ${data?.due_reviews??0} cards today`,
+            badge: reviewDone ? 'Done' : 'Not done',
+            bc: reviewDone ? 'badge-green' : 'badge-orange',
+          },
+          {
+            done: chatDone,
+            label: 'AI Chat — Writing practice',
+            badge: chatDone ? 'Done' : 'New',
+            bc: chatDone ? 'badge-green' : 'badge-purple',
+          },
+        ].map((t,i)=>(
+          <div key={i} className="task-item">
+            <div className={`task-check ${t.done?'done':'todo'}`}>{t.done?'✓':'○'}</div>
+            <span className="task-label">{t.label}</span>
+            <span className={`badge ${t.bc} task-badge-right`}>{t.badge}</span>
+          </div>
         ))}
       </div>
 
       {/* Quick actions */}
-      <div className="section-title">Hành động nhanh</div>
-      <div className="quick-actions">
+      <div className="section-title">⚡ Quick actions</div>
+      <div className="quick-grid">
         {[
-          { label: '▶  Luyện tập ngay',      sub: 'Làm câu hỏi mới',        to: '/skills',    cls: 'btn-primary' },
-          { label: '↻  Ôn tập thẻ hôm nay', sub: `${data?.due_reviews??0} thẻ đang chờ`, to: '/review',    cls: 'btn-secondary' },
-          { label: '✦  Chat với AI',          sub: 'Luyện writing tự do',     to: '/chat',      cls: 'btn-secondary' },
-          { label: '▲  Xem tiến độ',          sub: 'CEFR level progression',  to: '/progress',  cls: 'btn-secondary' },
-        ].map(a => (
-          <div key={a.label} className="quick-card" onClick={() => navigate(a.to)}>
-            <button className={`btn ${a.cls}`} style={{ justifyContent: 'flex-start', width: '100%' }}>
-              {a.label}
-            </button>
-            <p className="quick-sub">{a.sub}</p>
+          { img:IMG_VOCAB,    title:'Practice now',   sub:'New questions by level', to:'/practice', color:'var(--ocean)' },
+          { img:IMG_LISTEN,   title:'Review cards',   sub:`${data?.due_reviews??0} cards pending`, to:'/review', color:'var(--orange)' },
+          { img:IMG_CHAT,     title:'Chat with AI',   sub:'Free writing practice',  to:'/chat',     color:'var(--mint)' },
+          { img:IMG_PROGRESS, title:'View progress',  sub:'CEFR A1 → C2 track',   to:'/progress', color:'var(--purple)' },
+        ].map(a=>(
+          <div key={a.title} className="quick-card" style={{'--qc':a.color}}
+            onClick={()=>navigate(a.to)}>
+            <img className="quick-img" src={a.img} alt={a.title} />
+            <div className="quick-body">
+              <div className="quick-title">{a.title}</div>
+              <div className="quick-sub">{a.sub}</div>
+            </div>
+            <span className="quick-arrow">→</span>
           </div>
         ))}
       </div>

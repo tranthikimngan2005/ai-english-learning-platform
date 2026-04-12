@@ -3,6 +3,16 @@ import { userApi } from '../api/client';
 
 const AuthContext = createContext(null);
 
+function avatarKey(userId) {
+  return `pengwin_avatar_${userId}`;
+}
+
+function withAvatar(userData) {
+  if (!userData?.id) return userData;
+  const avatar = localStorage.getItem(avatarKey(userData.id));
+  return { ...userData, avatar: avatar || null };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,7 +22,7 @@ export function AuthProvider({ children }) {
     if (!token) { setLoading(false); return; }
     try {
       const me = await userApi.me();
-      setUser(me);
+      setUser(withAvatar(me));
     } catch {
       localStorage.removeItem('pengwin_token');
     } finally {
@@ -24,7 +34,19 @@ export function AuthProvider({ children }) {
 
   const login = (token, userData) => {
     localStorage.setItem('pengwin_token', token);
-    setUser(userData);
+    setUser(withAvatar(userData));
+  };
+
+  const setAvatar = (avatarDataUrl) => {
+    if (!user?.id) return;
+    localStorage.setItem(avatarKey(user.id), avatarDataUrl);
+    setUser(prev => prev ? { ...prev, avatar: avatarDataUrl } : prev);
+  };
+
+  const clearAvatar = () => {
+    if (!user?.id) return;
+    localStorage.removeItem(avatarKey(user.id));
+    setUser(prev => prev ? { ...prev, avatar: null } : prev);
   };
 
   const logout = () => {
@@ -33,7 +55,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, reload: loadUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, reload: loadUser, setAvatar, clearAvatar }}>
       {children}
     </AuthContext.Provider>
   );

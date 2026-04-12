@@ -11,15 +11,15 @@ export function ToastProvider({ children }) {
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
   }, []);
 
+  const icons = { success: '🐧', error: '❌', info: 'ℹ️' };
+
   return (
     <ToastCtx.Provider value={show}>
       {children}
       <div className="toast-wrap">
         {toasts.map(t => (
           <div key={t.id} className={`toast ${t.type}`}>
-            <span style={{ fontSize: 16 }}>
-              {t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : 'ℹ'}
-            </span>
+            <span className="toast-icon">{icons[t.type]}</span>
             <span>{t.msg}</span>
           </div>
         ))}
