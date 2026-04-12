@@ -16,10 +16,10 @@ export default function Register() {
 
   const validate = () => {
     const e = {};
-    if(!form.username||form.username.length<3) e.username='Username tối thiểu 3 ký tự';
-    if(!form.email||!form.email.includes('@')) e.email='Email không hợp lệ';
-    if(!form.password||form.password.length<6) e.password='Password tối thiểu 6 ký tự';
-    if(form.password!==form.confirm)           e.confirm='Mật khẩu không khớp';
+    if(!form.username||form.username.length<3) e.username='Username must be at least 3 characters';
+    if(!form.email||!form.email.includes('@')) e.email='Invalid email address';
+    if(!form.password||form.password.length<6) e.password='Password must be at least 6 characters';
+    if(form.password!==form.confirm)           e.confirm='Passwords do not match';
     return e;
   };
 
@@ -31,7 +31,7 @@ export default function Register() {
     try {
       const data = await authApi.register({username:form.username,email:form.email,password:form.password});
       login(data.access_token,{id:data.user_id,username:data.username,role:data.role});
-      toast('Tạo tài khoản thành công! Chào mừng bạn 🎉');
+      toast('Account created successfully! Welcome 🎉');
       navigate('/dashboard');
     } catch(err){ toast(err.message,'error'); }
     finally { setLoading(false); }
@@ -50,10 +50,10 @@ export default function Register() {
         </div>
         <div className="auth-card">
           <div className="auth-logo">
-            <span className="logo-text">Ling<span>AI</span></span>
+            <span className="logo-text">Pen<span>win</span></span>
           </div>
-          <h2 className="auth-title">Tạo tài khoản mới</h2>
-          <p className="auth-sub">Bắt đầu hành trình học tiếng Anh cùng Pengwin! 🚀</p>
+          <h2 className="auth-title">Create a new account</h2>
+          <p className="auth-sub">Start your English learning journey with Pengwin! 🚀</p>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
@@ -78,19 +78,19 @@ export default function Register() {
               {errors.password && <span className="form-error">{errors.password}</span>}
             </div>
             <div className="form-group">
-              <label className="form-label">Xác nhận Password</label>
+              <label className="form-label">Confirm Password</label>
               <input className={`form-input ${errors.confirm?'error':''}`}
-                type="password" placeholder="Nhập lại password"
+                type="password" placeholder="Re-enter password"
                 value={form.confirm} onChange={set('confirm')} />
               {errors.confirm && <span className="form-error">{errors.confirm}</span>}
             </div>
             <button type="submit" className="btn btn-primary btn-lg" style={{width:'100%'}} disabled={loading}>
-              {loading ? <><span className="spinner"/>Đang tạo...</> : '🎓 Tạo tài khoản'}
+              {loading ? <><span className="spinner"/>Creating...</> : '🎓 Create account'}
             </button>
           </form>
 
           <p className="auth-switch">
-            Đã có tài khoản? <Link to="/login">← Đăng nhập</Link>
+            Already have an account? <Link to="/login">← Log in</Link>
           </p>
         </div>
       </div>

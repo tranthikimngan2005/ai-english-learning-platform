@@ -23,7 +23,7 @@ export default function Layout({ children }) {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <span className="logo-text">Ling<span>AI</span></span>
+          <span className="logo-text">Pen<span>win</span></span>
         </div>
 
         <div className="sidebar-user">

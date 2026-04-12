@@ -20,7 +20,6 @@ def get_stats(
         total_users=db.query(User).count(),
         active_users_7d=db.query(User).filter(User.created_at >= week_ago).count(),
         total_questions=db.query(Question).count(),
-        pending_questions=db.query(Question).filter(Question.status == ContentStatusEnum.pending).count(),
         total_lessons=db.query(Lesson).count(),
         pending_lessons=db.query(Lesson).filter(Lesson.status == ContentStatusEnum.pending).count(),
     )
@@ -75,14 +74,6 @@ def ban_user(
     db.commit()
     db.refresh(user)
     return user
-
-
-@router.get("/content/pending/questions", response_model=list)
-def pending_questions(
-    db: Session = Depends(get_db),
-    _: User = Depends(require_role("admin")),
-):
-    return db.query(Question).filter(Question.status == ContentStatusEnum.pending).all()
 
 
 @router.get("/content/pending/lessons", response_model=list)

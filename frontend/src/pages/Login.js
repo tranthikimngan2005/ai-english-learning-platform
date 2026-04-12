@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -53,7 +53,7 @@ export default function Login() {
 
       <div className="auth-card fade-up">
         <div className="auth-logo">
-          <span className="logo-text">Ling<span>AI</span></span>
+          <span className="logo-text">Pengwin</span>
         </div>
         <h2 className="auth-title">Chào mừng trở lại</h2>
         <p className="auth-sub">Đăng nhập để tiếp tục học</p>
@@ -88,9 +88,9 @@ export default function Login() {
           <p className="auth-demo-title">Tài khoản demo</p>
           <div className="demo-accounts">
             {[
-              { label: 'Student', email: 'an@lingai.com', pw: 'student123' },
-              { label: 'Creator', email: 'creator@lingai.com', pw: 'creator123' },
-              { label: 'Admin',   email: 'admin@lingai.com',   pw: 'admin123' },
+              { label: 'Student', email: 'an@pengwin.com', pw: 'student123' },
+              { label: 'Creator', email: 'creator@pengwin.com', pw: 'creator123' },
+              { label: 'Admin',   email: 'admin@pengwin.com',   pw: 'admin123' },
             ].map(acc => (
               <button key={acc.label} className="demo-btn"
                 onClick={() => setForm({ email: acc.email, password: acc.pw })}>
@@ -110,3 +110,4 @@ export default function Login() {
     </div>
   );
 }
+

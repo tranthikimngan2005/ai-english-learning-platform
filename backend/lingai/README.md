@@ -1,48 +1,48 @@
-# LingAI Backend
+﻿# Pengwin Backend
 
-English learning platform API — FastAPI + SQLite
+English learning platform API â€” FastAPI + SQLite
 
 ## Tech Stack
 
-- **FastAPI** — web framework
-- **SQLite** — database (zero config)
-- **SQLAlchemy** — ORM
-- **JWT** — authentication
-- **Passlib/bcrypt** — password hashing
-- **SM-2 algorithm** — spaced repetition
+- **FastAPI** â€” web framework
+- **SQLite** â€” database (zero config)
+- **SQLAlchemy** â€” ORM
+- **JWT** â€” authentication
+- **Passlib/bcrypt** â€” password hashing
+- **SM-2 algorithm** â€” spaced repetition
 
 ---
 
 ## Project Structure
 
 ```
-lingai/
-├── app/
-│   ├── main.py               # FastAPI app entry point
-│   ├── core/
-│   │   ├── config.py         # Settings (env vars)
-│   │   ├── database.py       # SQLAlchemy engine + session
-│   │   └── security.py       # JWT + password hashing + auth deps
-│   ├── models/
-│   │   └── user.py           # All SQLAlchemy models
-│   ├── schemas/
-│   │   └── schemas.py        # All Pydantic schemas
-│   ├── routers/
-│   │   ├── auth.py           # POST /api/auth/register, /login
-│   │   ├── users.py          # GET /api/users/me, /dashboard, /progress
-│   │   ├── lessons.py        # CRUD /api/lessons
-│   │   ├── questions.py      # CRUD + practice /api/questions
-│   │   ├── review.py         # Spaced repetition /api/review
-│   │   ├── chat.py           # AI chat history /api/chat
-│   │   └── admin.py          # Admin panel /api/admin
-│   └── services/
-│       ├── spaced_repetition.py  # SM-2 algorithm
-│       └── streak.py             # Streak tracking
-├── tests/
-│   └── test_api.py           # Full test suite (40+ tests)
-├── seed.py                   # Dev data seeder
-├── requirements.txt
-└── README.md
+pengwin/
+â”œâ”€â”€ app/
+â”‚   â”œâ”€â”€ main.py               # FastAPI app entry point
+â”‚   â”œâ”€â”€ core/
+â”‚   â”‚   â”œâ”€â”€ config.py         # Settings (env vars)
+â”‚   â”‚   â”œâ”€â”€ database.py       # SQLAlchemy engine + session
+â”‚   â”‚   â””â”€â”€ security.py       # JWT + password hashing + auth deps
+â”‚   â”œâ”€â”€ models/
+â”‚   â”‚   â””â”€â”€ user.py           # All SQLAlchemy models
+â”‚   â”œâ”€â”€ schemas/
+â”‚   â”‚   â””â”€â”€ schemas.py        # All Pydantic schemas
+â”‚   â”œâ”€â”€ routers/
+â”‚   â”‚   â”œâ”€â”€ auth.py           # POST /api/auth/register, /login
+â”‚   â”‚   â”œâ”€â”€ users.py          # GET /api/users/me, /dashboard, /progress
+â”‚   â”‚   â”œâ”€â”€ lessons.py        # CRUD /api/lessons
+â”‚   â”‚   â”œâ”€â”€ questions.py      # CRUD + practice /api/questions
+â”‚   â”‚   â”œâ”€â”€ review.py         # Spaced repetition /api/review
+â”‚   â”‚   â”œâ”€â”€ chat.py           # AI chat history /api/chat
+â”‚   â”‚   â””â”€â”€ admin.py          # Admin panel /api/admin
+â”‚   â””â”€â”€ services/
+â”‚       â”œâ”€â”€ spaced_repetition.py  # SM-2 algorithm
+â”‚       â””â”€â”€ streak.py             # Streak tracking
+â”œâ”€â”€ tests/
+â”‚   â””â”€â”€ test_api.py           # Full test suite (40+ tests)
+â”œâ”€â”€ seed.py                   # Dev data seeder
+â”œâ”€â”€ requirements.txt
+â””â”€â”€ README.md
 ```
 
 ---
@@ -171,7 +171,7 @@ After each practice, a `ReviewCard` is created. When reviewing:
 | `good` | Correct with hesitation | Normal growth |
 | `easy` | Perfect recall | Fast growth + ease boost |
 
-Level up triggers when: **questions_done ≥ 50 AND accuracy ≥ 75%**
+Level up triggers when: **questions_done â‰¥ 50 AND accuracy â‰¥ 75%**
 
 ---
 
@@ -184,3 +184,4 @@ SECRET_KEY=your-very-long-random-secret-key
 DATABASE_URL=sqlite:///./lingai.db
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 ```
+

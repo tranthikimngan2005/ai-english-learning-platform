@@ -9,7 +9,7 @@ from app.models.user import (
     ContentStatusEnum, SkillEnum, LevelEnum
 )
 from app.schemas.schemas import (
-    QuestionCreate, QuestionOut, QuestionModerate,
+    QuestionCreate, QuestionOut,
     SubmitAnswerRequest, SubmitAnswerResponse,
     PracticeSessionRequest, PracticeSessionResponse,
 )
@@ -49,7 +49,11 @@ def create_question(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("creator", "admin")),
 ):
-    q = Question(**payload.model_dump(), creator_id=current_user.id)
+    q = Question(
+        **payload.model_dump(),
+        creator_id=current_user.id,
+        status=ContentStatusEnum.approved,
+    )
     db.add(q)
     db.commit()
     db.refresh(q)
@@ -70,6 +74,8 @@ def update_question(
         raise HTTPException(403, "Not your question")
     for k, v in payload.model_dump().items():
         setattr(q, k, v)
+    # Question updates are published immediately; no admin moderation step.
+    q.status = ContentStatusEnum.approved
     db.commit()
     db.refresh(q)
     return q
@@ -88,22 +94,6 @@ def delete_question(
         raise HTTPException(403, "Not your question")
     db.delete(q)
     db.commit()
-
-
-@router.patch("/{qid}/moderate", response_model=QuestionOut)
-def moderate_question(
-    qid: int,
-    payload: QuestionModerate,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_role("admin")),
-):
-    q = db.query(Question).filter(Question.id == qid).first()
-    if not q:
-        raise HTTPException(404, "Question not found")
-    q.status = payload.status
-    db.commit()
-    db.refresh(q)
-    return q
 
 
 # ──────────────────────────────────────────────

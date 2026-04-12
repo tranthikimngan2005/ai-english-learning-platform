@@ -27,7 +27,7 @@ export default function AdminDashboard() {
     <div className="fade-up">
       <div className="page-header">
         <h1 className="page-title">Admin Dashboard</h1>
-        <p className="page-sub">Tổng quan hệ thống LingAI</p>
+        <p className="page-sub">Tổng quan hệ thống Pengwin</p>
       </div>
 
       <div className="grid-3" style={{marginBottom:32}}>

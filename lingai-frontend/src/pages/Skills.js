@@ -5,10 +5,10 @@ import { IMG_VOCAB, IMG_LISTEN, IMG_GRAMMAR, IMG_CHAT } from '../assets/images';
 import './Skills.css';
 
 const SKILL_META = {
-  reading:   { img:IMG_VOCAB,   color:'#2196b0', desc:'Đọc hiểu văn bản, báo, tài liệu học thuật' },
-  listening: { img:IMG_LISTEN,  color:'#ff8c42', desc:'Nghe hiểu hội thoại, bài giảng, podcast' },
-  writing:   { img:IMG_GRAMMAR, color:'#9b6ff5', desc:'Viết đoạn văn, email, bài luận có cấu trúc' },
-  speaking:  { img:IMG_CHAT,    color:'#4ecb8d', desc:'Phát âm, hội thoại và diễn đạt ý kiến' },
+  reading:   { img:IMG_VOCAB,   color:'#2196b0', desc:'Read texts, news articles, and academic materials' },
+  listening: { img:IMG_LISTEN,  color:'#ff8c42', desc:'Understand conversations, lectures, and podcasts' },
+  writing:   { img:IMG_GRAMMAR, color:'#9b6ff5', desc:'Write structured paragraphs, emails, and essays' },
+  speaking:  { img:IMG_CHAT,    color:'#4ecb8d', desc:'Pronunciation, conversation, and expressing ideas' },
 };
 
 export default function Skills() {
@@ -27,8 +27,8 @@ export default function Skills() {
   return (
     <div className="fade-up">
       <div className="page-header">
-        <h1 className="page-title">⭐ Chọn kỹ năng</h1>
-        <p className="page-sub">Click vào kỹ năng để bắt đầu luyện tập</p>
+        <h1 className="page-title">⭐ Choose a skill</h1>
+        <p className="page-sub">Click a skill to start practicing</p>
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
         {profiles.map(p=>{
@@ -55,8 +55,8 @@ export default function Skills() {
         })}
       </div>
       <div style={{display:'flex',gap:12}}>
-        <button className="btn btn-primary" onClick={()=>navigate('/practice')}>▶ Luyện tập tổng hợp</button>
-        <button className="btn btn-yellow"  onClick={()=>navigate('/review')}>🔁 Ôn tập hôm nay</button>
+        <button className="btn btn-primary" onClick={()=>navigate('/practice')}>▶ Mixed practice</button>
+        <button className="btn btn-yellow"  onClick={()=>navigate('/review')}>🔁 Review today</button>
       </div>
     </div>
   );

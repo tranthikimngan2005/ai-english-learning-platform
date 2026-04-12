@@ -34,22 +34,22 @@ export default function CreatorLessons() {
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.content.trim()) {
-      toast('Tiêu đề và nội dung là bắt buộc','error'); return;
+      toast('Title and content are required','error'); return;
     }
     setSaving(true);
     try {
       const payload = { ...form, audio_url: form.audio_url||null };
       if (editId) await lessonApi.update(editId, payload);
       else        await lessonApi.create(payload);
-      toast(editId ? 'Đã cập nhật bài học!' : 'Đã tạo bài học — chờ admin duyệt!');
+      toast(editId ? 'Lesson updated!' : 'Lesson created — waiting for admin review!');
       setShowForm(false); load();
     } catch (e) { toast(e.message,'error'); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Xóa bài học này?')) return;
-    try { await lessonApi.delete(id); toast('Đã xóa!'); load(); }
+    if (!window.confirm('Delete this lesson?')) return;
+    try { await lessonApi.delete(id); toast('Deleted!'); load(); }
     catch (e) { toast(e.message,'error'); }
   };
 
@@ -59,22 +59,22 @@ export default function CreatorLessons() {
     <div className="fade-up">
       <div className="page-header" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
-          <h1 className="page-title">Quản lý bài học</h1>
-          <p className="page-sub">Tạo và chỉnh sửa bài học · chờ admin duyệt</p>
+          <h1 className="page-title">Lesson management</h1>
+          <p className="page-sub">Create and edit lessons; waiting for admin review</p>
         </div>
-        <button className="btn btn-primary" onClick={openNew}>✚ Tạo bài học</button>
+        <button className="btn btn-primary" onClick={openNew}>✚ Create lesson</button>
       </div>
 
       {loading ? <div className="loading-page" style={{height:200}}><div className="spinner spinner-lg"/></div> : (
         <div className="data-table-wrap">
           <table className="data-table">
             <thead>
-              <tr><th>Tiêu đề</th><th>Kỹ năng</th><th>Level</th><th>Trạng thái</th><th>Hành động</th></tr>
+              <tr><th>Title</th><th>Skill</th><th>Level</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {lessons.length === 0 ? (
                 <tr><td colSpan={5} style={{textAlign:'center',color:'var(--text3)',padding:'32px 0'}}>
-                  Chưa có bài học nào
+                  No lessons yet
                 </td></tr>
               ) : lessons.map(l=>(
                 <tr key={l.id}>
@@ -84,7 +84,7 @@ export default function CreatorLessons() {
                   <td><span className={`badge ${STATUS_BADGE[l.status]}`}>{l.status}</span></td>
                   <td>
                     <div style={{display:'flex',gap:6}}>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(l)}>✎ Sửa</button>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(l)}>✎ Edit</button>
                       <button className="btn btn-danger btn-sm" onClick={()=>handleDelete(l.id)}>✕</button>
                     </div>
                   </td>
@@ -99,18 +99,18 @@ export default function CreatorLessons() {
         <div className="modal-overlay" onClick={()=>setShowForm(false)}>
           <div className="modal-box" onClick={e=>e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editId ? 'Sửa bài học' : 'Tạo bài học mới'}</h3>
+              <h3>{editId ? 'Edit lesson' : 'Create new lesson'}</h3>
               <button className="btn btn-ghost btn-icon" onClick={()=>setShowForm(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div className="form-group" style={{marginBottom:14}}>
-                <label className="form-label">Tiêu đề</label>
-                <input className="form-input" placeholder="Tiêu đề bài học..."
+                <label className="form-label">Title</label>
+                <input className="form-input" placeholder="Lesson title..."
                   value={form.title} onChange={set('title')} />
               </div>
               <div className="grid-2" style={{gap:10,marginBottom:14}}>
                 <div className="form-group">
-                  <label className="form-label">Kỹ năng</label>
+                  <label className="form-label">Skill</label>
                   <select className="form-select" value={form.skill} onChange={set('skill')}>
                     {SKILLS.map(s=><option key={s} value={s} style={{textTransform:'capitalize'}}>{s}</option>)}
                   </select>
@@ -123,21 +123,21 @@ export default function CreatorLessons() {
                 </div>
               </div>
               <div className="form-group" style={{marginBottom:14}}>
-                <label className="form-label">Nội dung bài học</label>
+                <label className="form-label">Lesson content</label>
                 <textarea className="form-textarea" rows={5}
-                  placeholder="Nhập nội dung bài học đầy đủ..."
+                  placeholder="Enter the full lesson content..."
                   value={form.content} onChange={set('content')} />
               </div>
               <div className="form-group" style={{marginBottom:14}}>
-                <label className="form-label">URL Audio (tùy chọn, dành cho Listening)</label>
+                <label className="form-label">Audio URL (optional, for Listening)</label>
                 <input className="form-input" placeholder="/audio/lesson_01.mp3"
                   value={form.audio_url} onChange={set('audio_url')} />
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={()=>setShowForm(false)}>Hủy</button>
+              <button className="btn btn-ghost" onClick={()=>setShowForm(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? <><span className="spinner"/>Đang lưu...</> : editId ? 'Cập nhật' : 'Tạo bài học'}
+                {saving ? <><span className="spinner"/>Saving...</> : editId ? 'Update' : 'Create lesson'}
               </button>
             </div>
           </div>

@@ -46,9 +46,9 @@ function LevelBar({ p }) {
 
       <div className="prog-stats">
         {[
-          {v:p.questions_done,   k:'Câu đã làm'},
-          {v:p.questions_correct,k:'Đúng',c:m.color},
-          {v:Math.max(0,50-p.questions_done),k:'Còn lại'},
+          {v:p.questions_done,   k:'Questions done'},
+          {v:p.questions_correct,k:'Correct',c:m.color},
+          {v:Math.max(0,50-p.questions_done),k:'Remaining'},
         ].map(s=>(
           <div key={s.k} className="prog-stat">
             <span className="prog-stat-val" style={s.c?{color:s.c}:{}}>{s.v}</span>
@@ -60,7 +60,7 @@ function LevelBar({ p }) {
         <div className="progress-fill" style={{width:`${Math.min(100,p.questions_done/50*100)}%`, background:m.color}} />
       </div>
       <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--text3)',marginTop:5,fontWeight:600}}>
-        <span>0 câu</span><span>50 câu · cần ≥75% đúng</span>
+        <span>0 questions</span><span>50 questions · need ≥75% correct</span>
       </div>
     </div>
   );
@@ -80,8 +80,8 @@ export default function Progress() {
   return (
     <div className="fade-up">
       <div className="page-header">
-        <h1 className="page-title">📈 Tiến độ học</h1>
-        <p className="page-sub">CEFR level progression — cần 50 câu + 75% accuracy để lên cấp</p>
+        <h1 className="page-title">📈 Learning progress</h1>
+        <p className="page-sub">CEFR level progression — reach 50 questions and 75% accuracy to level up</p>
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         {profiles.map(p=><LevelBar key={p.skill} p={p} />)}

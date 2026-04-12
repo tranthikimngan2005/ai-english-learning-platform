@@ -1,4 +1,4 @@
--- LingAI Questions Test Data - SQLite Compatible
+-- Pengwin Questions Test Data - SQLite Compatible
 -- This file contains approximately 300+ test questions across all skills and levels
 
 -- =====================================

@@ -26,12 +26,18 @@ export default function Layout({ children }) {
           <div className="logo-mascot">
             <img src={IMG_HERO} alt="Pengwin" />
           </div>
-          <span className="logo-text">Ling<span>AI</span></span>
+          <span className="logo-text">Pen<span>win</span></span>
         </div>
 
         {/* User */}
         <div className="sidebar-user">
-          <div className="avatar">{user?.username?.[0]?.toUpperCase()}</div>
+          <div className="avatar">
+            {user?.avatar ? (
+              <img src={user.avatar} alt="avatar" />
+            ) : (
+              user?.username?.[0]?.toUpperCase()
+            )}
+          </div>
           <div style={{ overflow:'hidden' }}>
             <div className="user-name">{user?.username}</div>
             <span className="user-role-badge">{user?.role}</span>
@@ -40,42 +46,45 @@ export default function Layout({ children }) {
 
         {/* Navigation */}
         <nav style={{ flex:1 }}>
-          <div className="nav-section">Learner</div>
-          <NavItem to="/dashboard" end icon="🏠" label="Dashboard" />
-          <NavItem to="/skills"       icon="⭐" label="Kỹ năng" />
-          <NavItem to="/practice"     icon="▶" label="Luyện tập" />
-          <NavItem to="/review"       icon="🔁" label="Ôn tập" />
-          <NavItem to="/progress"     icon="📈" label="Tiến độ" />
-          <NavItem to="/chat"         icon="💬" label="AI Chat" />
-          <NavItem to="/profile"      icon="🐧" label="Profile" />
+          {user?.role === 'student' && <>
+            <div className="nav-section">Learner</div>
+            <NavItem to="/dashboard" end icon="🏠" label="Dashboard" />
+            <NavItem to="/skills"       icon="⭐" label="Skills" />
+            <NavItem to="/practice"     icon="▶" label="Practice" />
+            <NavItem to="/review"       icon="🔁" label="Review" />
+            <NavItem to="/progress"     icon="📈" label="Progress" />
+            <NavItem to="/chat"         icon="💬" label="AI Chat" />
+            <NavItem to="/profile"      icon="🐧" label="Profile" />
+          </>}
 
-          {(user?.role === 'creator' || user?.role === 'admin') && <>
+          {user?.role === 'creator' && <>
             <div className="nav-section">Creator</div>
-            <NavItem to="/creator/questions" icon="❓" label="Câu hỏi" />
-            <NavItem to="/creator/lessons"   icon="📚" label="Bài học" />
+            <NavItem to="/creator/questions" icon="❓" label="Questions" />
+            <NavItem to="/creator/lessons"   icon="📚" label="Lessons" />
           </>}
 
           {user?.role === 'admin' && <>
             <div className="nav-section">Admin</div>
             <NavItem to="/admin"         icon="🛡️" label="Dashboard" />
             <NavItem to="/admin/users"   icon="👥" label="Users" />
-            <NavItem to="/admin/content" icon="✅" label="Kiểm duyệt" />
           </>}
         </nav>
 
-        {/* Streak widget */}
-        <div className="streak-widget">
-          <img className="streak-mascot" src={IMG_STREAK} alt="streak" />
-          <div>
-            <div className="streak-num">🔥 Streak</div>
-            <div className="streak-label">Keep going!</div>
+        {/* Streak widget (student only) */}
+        {user?.role === 'student' && (
+          <div className="streak-widget">
+            <img className="streak-mascot" src={IMG_STREAK} alt="streak" />
+            <div>
+              <div className="streak-num">🔥 Streak</div>
+              <div className="streak-label">Keep going!</div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="sidebar-bottom">
           <button className="sidebar-logout"
             onClick={() => { logout(); navigate('/login'); }}>
-            ⎋ <span>Đăng xuất</span>
+            ⎋ <span>Logout</span>
           </button>
         </div>
       </aside>

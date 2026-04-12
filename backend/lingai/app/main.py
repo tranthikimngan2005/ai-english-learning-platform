@@ -7,7 +7,7 @@ from app.routers import auth, users, lessons, questions, review, chat, admin
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="LingAI Backend",
+    title="Pengwin Backend",
     description="English learning platform API — skills, practice, spaced repetition, AI chat",
     version="1.0.0",
 )
@@ -31,7 +31,7 @@ app.include_router(admin.router)
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"status": "ok", "app": "LingAI API v1.0"}
+    return {"status": "ok", "app": "Pengwin API v1.0"}
 
 
 @app.get("/health", tags=["Health"])

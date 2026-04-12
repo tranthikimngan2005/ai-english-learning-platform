@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -24,8 +24,8 @@ export default function Login() {
 
   const validate = () => {
     const e = {};
-    if (!form.email)    e.email    = 'Vui lòng nhập email hoặc username';
-    if (!form.password) e.password = 'Vui lòng nhập password';
+    if (!form.email)    e.email    = 'Please enter your email or username';
+    if (!form.password) e.password = 'Please enter your password';
     return e;
   };
 
@@ -37,7 +37,7 @@ export default function Login() {
     try {
       const data = await authApi.login(form.email, form.password);
       login(data.access_token, { id:data.user_id, username:data.username, role:data.role });
-      toast('Chào mừng trở lại! 🐧');
+      toast('Welcome back! 🐧');
       navigate('/dashboard');
     } catch(err) { toast(err.message, 'error'); }
     finally { setLoading(false); }
@@ -60,10 +60,10 @@ export default function Login() {
         </div>
         <div className="auth-card">
           <div className="auth-logo">
-            <span className="logo-text">Ling<span>AI</span></span>
+            <span className="logo-text">Pengwin</span>
           </div>
-          <h2 className="auth-title">Chào mừng trở lại!</h2>
-          <p className="auth-sub">Đăng nhập để tiếp tục hành trình học tiếng Anh 🎓</p>
+          <h2 className="auth-title">Welcome back!</h2>
+          <p className="auth-sub">Log in to continue your English learning journey 🎓</p>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
@@ -81,12 +81,12 @@ export default function Login() {
               {errors.password && <span className="form-error">{errors.password}</span>}
             </div>
             <button type="submit" className="btn btn-primary btn-lg" style={{width:'100%'}} disabled={loading}>
-              {loading ? <><span className="spinner"/>Đang đăng nhập...</> : '🐧 Đăng nhập'}
+              {loading ? <><span className="spinner"/>Signing in...</> : '🐧 Log in'}
             </button>
           </form>
 
           <div className="auth-demo">
-            <div className="auth-demo-title">🎮 Tài khoản demo</div>
+            <div className="auth-demo-title">🎮 Demo accounts</div>
             <div className="demo-accounts">
               {[
                 { label:'Student',  email:'an@lingai.com',      pw:'student123', cls:'badge-green' },
@@ -103,10 +103,11 @@ export default function Login() {
           </div>
 
           <p className="auth-switch">
-            Chưa có tài khoản? <Link to="/register">Đăng ký ngay →</Link>
+            Don&apos;t have an account? <Link to="/register">Sign up now →</Link>
           </p>
         </div>
       </div>
     </div>
   );
 }
+

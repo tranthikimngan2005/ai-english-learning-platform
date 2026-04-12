@@ -1,5 +1,5 @@
-"""
-Seed script — populates LingAI DB with sample data for dev/demo.
+﻿"""
+Seed script â€” populates Pengwin DB with sample data for dev/demo.
 Run: python seed.py
 """
 import sys
@@ -34,9 +34,9 @@ def create_user(username, email, password, role=RoleEnum.student):
 
 
 print("Creating users...")
-admin   = create_user("admin",    "admin@lingai.com",   "admin123",   RoleEnum.admin)
-creator = create_user("creator1", "creator@lingai.com", "creator123", RoleEnum.creator)
-student = create_user("an",       "an@lingai.com",      "student123", RoleEnum.student)
+admin   = create_user("admin",    "admin@pengwin.com",   "admin123",   RoleEnum.admin)
+creator = create_user("creator1", "creator@pengwin.com", "creator123", RoleEnum.creator)
+student = create_user("an",       "an@pengwin.com",      "student123", RoleEnum.student)
 db.commit()
 
 print("Creating lessons...")
@@ -65,26 +65,26 @@ questions_data = [
          content="The author suggests that language acquisition is most effective when learners are _____ in authentic communicative situations rather than memorizing isolated vocabulary.",
          options=["tested", "corrected", "immersed", "evaluated"],
          correct_answer="immersed",
-         explanation="'Immersed' fits — the author stresses authentic communication over rote memorization. 'Authentic communicative situations' is the key clue.",
+         explanation="'Immersed' fits â€” the author stresses authentic communication over rote memorization. 'Authentic communicative situations' is the key clue.",
          status=ContentStatusEnum.approved),
     dict(skill=SkillEnum.reading, level=LevelEnum.B1, q_type=QuestionTypeEnum.mcq,
          content="Which word is closest in meaning to 'ubiquitous'?",
          options=["rare", "widespread", "ancient", "expensive"],
          correct_answer="widespread",
-         explanation="'Ubiquitous' means present or found everywhere — synonymous with widespread.",
+         explanation="'Ubiquitous' means present or found everywhere â€” synonymous with widespread.",
          status=ContentStatusEnum.approved),
     dict(skill=SkillEnum.reading, level=LevelEnum.A2, q_type=QuestionTypeEnum.mcq,
          content="She felt _____ after winning the competition.",
          options=["devastated", "elated", "confused", "bored"],
          correct_answer="elated",
-         explanation="'Elated' means extremely happy — fits the context of winning.",
+         explanation="'Elated' means extremely happy â€” fits the context of winning.",
          status=ContentStatusEnum.approved),
     # Fill blank
     dict(skill=SkillEnum.writing, level=LevelEnum.A2, q_type=QuestionTypeEnum.fill_blank,
          content="She ___ (go) to the market every Saturday.",
          options=None,
          correct_answer="goes",
-         explanation="Third person singular, present simple — add -es to 'go'.",
+         explanation="Third person singular, present simple â€” add -es to 'go'.",
          status=ContentStatusEnum.approved),
     dict(skill=SkillEnum.writing, level=LevelEnum.B1, q_type=QuestionTypeEnum.fill_blank,
          content="By the time they arrived, the film _____ (already / start).",
@@ -148,11 +148,12 @@ for profile in db.query(SkillProfile).filter(SkillProfile.user_id == student.id)
 
 db.commit()
 
-print("\n✅ Seed complete!")
-print("─" * 40)
-print("👤 Users created:")
-print("  admin@lingai.com   / admin123   (admin)")
-print("  creator@lingai.com / creator123 (creator)")
-print("  an@lingai.com      / student123 (student)")
-print(f"\n📚 {len(lesson_objs)} lessons, {len(question_objs)} questions seeded")
-print("🃏 4 review cards due NOW for student account")
+print("\nâœ… Seed complete!")
+print("â”€" * 40)
+print("ðŸ‘¤ Users created:")
+print("  admin@pengwin.com   / admin123   (admin)")
+print("  creator@pengwin.com / creator123 (creator)")
+print("  an@pengwin.com      / student123 (student)")
+print(f"\nðŸ“š {len(lesson_objs)} lessons, {len(question_objs)} questions seeded")
+print("ðŸƒ 4 review cards due NOW for student account")
+

@@ -245,6 +245,5 @@ class AdminStatsResponse(BaseModel):
     total_users: int
     active_users_7d: int
     total_questions: int
-    pending_questions: int
     total_lessons: int
     pending_lessons: int

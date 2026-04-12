@@ -1,5 +1,5 @@
 """
-All database models for LingAI.
+All database models for Pengwin.
 """
 import enum
 from sqlalchemy import (

@@ -21,14 +21,14 @@ export default function AdminUsers() {
   useEffect(() => { load(); }, [load]);
 
   const changeRole = async (id, role) => {
-    try { await adminApi.changeRole(id, role); toast('Đã đổi role!'); load(); }
+    try { await adminApi.changeRole(id, role); toast('Role updated!'); load(); }
     catch (e) { toast(e.message,'error'); }
   };
 
   const toggleBan = async (user) => {
     const msg = user.is_active ? `Ban user "${user.username}"?` : `Unban user "${user.username}"?`;
     if (!window.confirm(msg)) return;
-    try { await adminApi.ban(user.id, !user.is_active); toast(user.is_active ? 'Đã ban!' : 'Đã unban!'); load(); }
+    try { await adminApi.ban(user.id, !user.is_active); toast(user.is_active ? 'User banned!' : 'User unbanned!'); load(); }
     catch (e) { toast(e.message,'error'); }
   };
 
@@ -40,13 +40,13 @@ export default function AdminUsers() {
   return (
     <div className="fade-up">
       <div className="page-header">
-        <h1 className="page-title">Quản lý Users</h1>
-        <p className="page-sub">{users.length} người dùng</p>
+        <h1 className="page-title">Manage users</h1>
+        <p className="page-sub">{users.length} users</p>
       </div>
 
       <div style={{marginBottom:16}}>
         <input className="form-input" style={{maxWidth:320}}
-          placeholder="Tìm kiếm username hoặc email..."
+          placeholder="Search username or email..."
           value={search} onChange={e=>setSearch(e.target.value)} />
       </div>
 
@@ -54,7 +54,7 @@ export default function AdminUsers() {
         <div className="data-table-wrap">
           <table className="data-table">
             <thead>
-              <tr><th>#</th><th>Username</th><th>Email</th><th>Role</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hành động</th></tr>
+              <tr><th>#</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Created at</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {filtered.map(u=>(
@@ -75,7 +75,7 @@ export default function AdminUsers() {
                     </span>
                   </td>
                   <td style={{fontSize:12,color:'var(--text3)'}}>
-                    {new Date(u.created_at).toLocaleDateString('vi-VN')}
+                    {new Date(u.created_at).toLocaleDateString('en-US')}
                   </td>
                   <td>
                     <button

@@ -56,7 +56,7 @@ export default function Chat() {
     try {
       const saved = await chatApi.generate(text);
       setMessages(prev=>[...prev,saved]);
-    } catch(e) { toast(e.message || 'Không thể lưu phản hồi AI','error'); }
+    } catch(e) { toast(e.message || 'Could not save the AI response','error'); }
     finally { setTyping(false); }
   };
 
@@ -76,12 +76,12 @@ export default function Chat() {
       <div className="chat-topbar">
         <div>
           <h1 className="page-title" style={{marginBottom:2}}>💬 AI Writing Coach</h1>
-          <p className="page-sub">Viết tự do — Pengwin AI sẽ sửa lỗi ngữ pháp cho bạn!</p>
+          <p className="page-sub">Free writing — Pengwin AI will correct your grammar!</p>
         </div>
         <button className="btn btn-ghost btn-sm"
-          onClick={async()=>{if(!window.confirm('Xóa lịch sử chat?'))return;await chatApi.clear();setMessages([]);toast('Đã xóa!');}}
+          onClick={async()=>{if(!window.confirm('Clear chat history?'))return;await chatApi.clear();setMessages([]);toast('Deleted!');}}
           disabled={messages.length===0}>
-          🗑 Xóa chat
+          🗑 Clear chat
         </button>
       </div>
 
@@ -89,13 +89,13 @@ export default function Chat() {
         {loading ? <div className="loading-page"><div className="spinner spinner-lg"/></div>
         : messages.length===0 ? (
           <div className="chat-empty">
-            <img src={IMG_GRAMMAR} style={{width:90,animation:'float 3s ease-in-out infinite',marginBottom:16}} alt="" />
-            <h3 style={{fontFamily:'var(--font-head)',fontSize:20,color:'var(--navy)',marginBottom:8}}>Xin chào! Tôi là Pengwin AI 🐧</h3>
+            <img className="penguin-cutout" src={IMG_GRAMMAR} style={{width:90,animation:'float 3s ease-in-out infinite',marginBottom:16}} alt="" />
+            <h3 style={{fontFamily:'var(--font-head)',fontSize:20,color:'var(--navy)',marginBottom:8}}>Hello! I&apos;m Pengwin AI 🐧</h3>
             <p style={{fontSize:14,color:'var(--text2)',fontWeight:600,marginBottom:20,maxWidth:360}}>
-              Viết bất kỳ câu nào bằng tiếng Anh và tôi sẽ giúp bạn cải thiện ngữ pháp!
+              Write any sentence in English and I&apos;ll help you improve it!
             </p>
             <div style={{width:'100%',maxWidth:420}}>
-              <p style={{fontSize:11,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text3)',marginBottom:10}}>💡 Thử các câu này:</p>
+              <p style={{fontSize:11,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text3)',marginBottom:10}}>💡 Try these prompts:</p>
               {SUGGESTIONS.map((s,i)=>(
                 <button key={i} className="sug-btn" onClick={()=>setInput(s)}>{s}</button>
               ))}
@@ -112,7 +112,7 @@ export default function Chat() {
 
       <div className="chat-input-area">
         <input className="chat-textarea"
-          placeholder="Nhập 1 dòng lệnh... ví dụ: viết đoạn văn tiếng Anh về du lịch"
+          placeholder="Type a prompt... for example: write an English paragraph about travel"
           value={input} onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleSend();}}}
           disabled={typing} />

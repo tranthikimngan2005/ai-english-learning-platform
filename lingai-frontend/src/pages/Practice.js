@@ -26,14 +26,14 @@ export default function Practice() {
     setLoading(true);
     try {
       const data = await questionApi.startPractice(skill, count);
-      if (!data.questions.length) { toast('Không có câu hỏi nào! Hãy thêm câu hỏi trước.','error'); return; }
+      if (!data.questions.length) { toast('No questions available. Add some questions first.','error'); return; }
       setQuestions(data.questions); setIdx(0); setAnswer(''); setResult(null); setScore({correct:0,total:0}); setStep('playing');
     } catch(e) { toast(e.message,'error'); }
     finally { setLoading(false); }
   }, [skill, count, toast]);
 
   const handleSubmit = async () => {
-    if (!answer.trim()) { toast('Vui lòng chọn hoặc nhập câu trả lời','error'); return; }
+    if (!answer.trim()) { toast('Please select or enter an answer.','error'); return; }
     setSubmitting(true);
     try {
       const res = await questionApi.submitAnswer(questions[idx].id, answer);
@@ -53,12 +53,12 @@ export default function Practice() {
   if (step==='config') return (
     <div className="fade-up practice-config">
       <div className="page-header">
-        <h1 className="page-title">▶ Luyện tập</h1>
-        <p className="page-sub">Chọn kỹ năng và số câu hỏi để bắt đầu</p>
+        <h1 className="page-title">▶ Practice</h1>
+        <p className="page-sub">Choose a skill and question count to begin</p>
       </div>
       <div className="card" style={{padding:28}}>
         <div className="form-group" style={{marginBottom:22}}>
-          <label className="form-label">Kỹ năng</label>
+          <label className="form-label">Skill</label>
           <div className="skill-picker">
             {SKILLS.map(s=>(
               <button key={s} className={`skill-pick-btn ${skill===s?'active':''}`} onClick={()=>setSkill(s)}>
@@ -69,7 +69,7 @@ export default function Practice() {
           </div>
         </div>
         <div className="form-group" style={{marginBottom:28}}>
-          <label className="form-label">Số câu hỏi: <strong style={{color:'var(--ocean)',fontSize:15}}>{count}</strong></label>
+          <label className="form-label">Question count: <strong style={{color:'var(--ocean)',fontSize:15}}>{count}</strong></label>
           <input type="range" min={5} max={30} value={count}
             onChange={e=>setCount(+e.target.value)}
             style={{width:'100%',accentColor:'var(--ocean)',marginTop:8}} />
@@ -78,7 +78,7 @@ export default function Practice() {
           </div>
         </div>
         <button className="btn btn-primary btn-lg" style={{width:'100%'}} onClick={startSession} disabled={loading}>
-          {loading ? <><span className="spinner"/>Đang tải...</> : `▶ Bắt đầu ${count} câu · ${skill}`}
+          {loading ? <><span className="spinner"/>Loading...</> : `▶ Start ${count} questions · ${skill}`}
         </button>
       </div>
     </div>
@@ -89,22 +89,22 @@ export default function Practice() {
       <div className="done-card card">
         <img className="done-mascot" src={score.correct/score.total>=0.7?IMG_PROGRESS:IMG_HERO} alt="" />
         <h2 className="done-title">
-          {score.correct===score.total ? '🎉 Hoàn hảo!' : score.correct/score.total>=0.7 ? '👍 Tốt lắm!' : '💪 Cố lên!'}
+          {score.correct===score.total ? '🎉 Perfect!' : score.correct/score.total>=0.7 ? '👍 Great job!' : '💪 Keep going!'}
         </h2>
         <div className="done-score">
           <span className="done-num accent">{score.correct}</span>
           <span className="done-slash">/</span>
           <span className="done-num">{score.total}</span>
         </div>
-        <div className="done-pct">{Math.round(score.correct/score.total*100)}% chính xác</div>
+        <div className="done-pct">{Math.round(score.correct/score.total*100)}% correct</div>
         <p className="done-msg">
-          {score.correct===score.total ? 'Xuất sắc! Làm đúng tất cả!'
-           : score.correct/score.total>=0.7 ? 'Tốt lắm! Tiếp tục ôn nhé!'
-           : 'Hãy xem lại phần Review để ôn thêm!'}
+          {score.correct===score.total ? 'Excellent! You got everything right!'
+           : score.correct/score.total>=0.7 ? 'Nice work! Keep reviewing!'
+           : 'Check the Review section to study more!'}
         </p>
         <div className="done-actions">
           <button className="btn btn-primary" onClick={startSession}>▶ Làm thêm</button>
-          <button className="btn btn-secondary" onClick={()=>setStep('config')}>⚙ Đổi kỹ năng</button>
+          <button className="btn btn-secondary" onClick={()=>setStep('config')}>⚙ Change skill</button>
         </div>
       </div>
     </div>
@@ -157,7 +157,7 @@ export default function Practice() {
         )}
         {(q?.q_type==='fill_blank'||q?.q_type==='writing'||q?.q_type==='speaking') && (
           <textarea className="form-textarea"
-            placeholder={q.q_type==='fill_blank'?'Nhập câu trả lời...':'Viết câu trả lời của bạn...'}
+            placeholder={q.q_type==='fill_blank'?'Enter your answer...':'Write your answer...'}
             value={answer} onChange={e=>setAnswer(e.target.value)}
             disabled={!!result} rows={q.q_type==='writing'?5:2} />
         )}
@@ -166,8 +166,8 @@ export default function Practice() {
           <div className={`feedback ${result.is_correct?'correct-fb':'wrong-fb'}`}>
             <div className="feedback-icon">{result.is_correct?'✅':'❌'}</div>
             <div>
-              <div className="feedback-title">{result.is_correct?`Chính xác! +${result.xp_gained} XP 🎉`:'Chưa đúng!'}</div>
-              {!result.is_correct && <div className="feedback-answer">Đáp án: <strong>{result.correct_answer}</strong></div>}
+              <div className="feedback-title">{result.is_correct?`Correct! +${result.xp_gained} XP 🎉`:'Not quite!'}</div>
+              {!result.is_correct && <div className="feedback-answer">Answer: <strong>{result.correct_answer}</strong></div>}
               {result.explanation && <div className="feedback-explain">{result.explanation}</div>}
             </div>
           </div>
@@ -177,14 +177,14 @@ export default function Practice() {
       <div className="practice-actions">
         {!result ? (
           <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting||!answer.trim()}>
-            {submitting?<><span className="spinner"/>Đang chấm...</>:'Nộp bài'}
+            {submitting?<><span className="spinner"/>Grading...</>:'Submit'}
           </button>
         ) : (
           <button className="btn btn-primary" onClick={handleNext}>
-            {idx+1>=questions.length?'Xem kết quả →':'Câu tiếp theo →'}
+            {idx+1>=questions.length?'View results →':'Next question →'}
           </button>
         )}
-        <button className="btn btn-ghost" onClick={()=>setStep('config')}>Dừng lại</button>
+        <button className="btn btn-ghost" onClick={()=>setStep('config')}>Stop</button>
       </div>
     </div>
   );

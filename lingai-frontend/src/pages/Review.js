@@ -46,14 +46,14 @@ export default function Review() {
   if (step==='idle') return (
     <div className="fade-up review-idle">
       <div className="page-header">
-        <h1 className="page-title">🔁 Ôn tập</h1>
-        <p className="page-sub">Spaced Repetition — ôn đúng lúc, nhớ lâu hơn</p>
+        <h1 className="page-title">🔁 Review</h1>
+        <p className="page-sub">Spaced repetition — review at the right time and remember longer</p>
       </div>
       <div className="idle-card card">
         <img src={IMG_LISTEN} className="idle-mascot" alt="" />
         <div className="idle-count">{cards.length}</div>
-        <div className="idle-label">thẻ cần ôn hôm nay</div>
-        <div className="idle-est">Ước tính ~{Math.ceil(cards.length*0.8)} phút</div>
+        <div className="idle-label">cards due today</div>
+        <div className="idle-est">Estimated ~{Math.ceil(cards.length*0.8)} minutes</div>
         <div className="idle-preview">
           {cards.slice(0,3).map(c=>(
             <div key={c.id} className="idle-preview-item">
@@ -62,10 +62,10 @@ export default function Review() {
               <span style={{fontSize:11,color:'var(--text3)',fontWeight:700}}>+{c.interval_days}d</span>
             </div>
           ))}
-          {cards.length>3 && <div style={{fontSize:13,color:'var(--text3)',textAlign:'center',fontWeight:600}}>và {cards.length-3} thẻ nữa...</div>}
+          {cards.length>3 && <div style={{fontSize:13,color:'var(--text3)',textAlign:'center',fontWeight:600}}>and {cards.length-3} more cards...</div>}
         </div>
         <button className="btn btn-primary btn-lg" style={{width:'100%'}} onClick={()=>{setIdx(0);setShowing(false);setStep('reviewing');}}>
-          Bắt đầu ôn tập →
+          Start reviewing →
         </button>
       </div>
     </div>
@@ -74,15 +74,15 @@ export default function Review() {
   if (step==='done') return (
     <div className="fade-up review-idle">
       <div className="idle-card card" style={{textAlign:'center'}}>
-        <img src={IMG_HERO} style={{width:100,animation:'float 3s ease-in-out infinite',marginBottom:16}} alt="" />
+        <img className="penguin-cutout" src={IMG_HERO} style={{width:100,animation:'float 3s ease-in-out infinite',marginBottom:16}} alt="" />
         <h2 style={{fontFamily:'var(--font-head)',fontSize:22,color:'var(--navy)',marginBottom:8}}>
-          {cards.length===0 ? 'Không có thẻ hôm nay!' : 'Ôn tập hoàn thành! 🎊'}
+          {cards.length===0 ? 'No cards due today!' : 'Review complete! 🎊'}
         </h2>
         <p style={{fontSize:14,color:'var(--text2)',fontWeight:600,marginBottom:24}}>
-          {cards.length===0 ? 'Làm thêm bài luyện tập để tạo thẻ mới.' : `Đã ôn ${stats.done} thẻ · Cần ôn lại: ${stats.again}`}
+          {cards.length===0 ? 'Do more practice to generate new cards.' : `Reviewed ${stats.done} cards · Need again: ${stats.again}`}
         </p>
         <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-          <a href="/practice" className="btn btn-primary">▶ Luyện tập thêm</a>
+          <a href="/practice" className="btn btn-primary">▶ More practice</a>
           <a href="/dashboard" className="btn btn-secondary">🏠 Dashboard</a>
         </div>
       </div>
@@ -106,9 +106,9 @@ export default function Review() {
         </div>
         <p className="review-q">{q?.content}</p>
         {!showing
-          ? <button className="btn btn-secondary" style={{alignSelf:'center'}} onClick={()=>setShowing(true)}>👀 Xem đáp án</button>
+            ? <button className="btn btn-secondary" style={{alignSelf:'center'}} onClick={()=>setShowing(true)}>👀 Show answer</button>
           : <div className="review-answer fade-in">
-              <div className="answer-label">✅ Đáp án đúng</div>
+              <div className="answer-label">✅ Correct answer</div>
               <div className="answer-text">{q?.correct_answer}</div>
               {q?.explanation && <div className="answer-explain">{q.explanation}</div>}
             </div>
@@ -117,7 +117,7 @@ export default function Review() {
 
       {showing && (
         <div className="grade-row fade-in">
-          <p style={{fontSize:13,color:'var(--text2)',fontWeight:700,marginBottom:12}}>🤔 Bạn nhớ tốt đến đâu?</p>
+          <p style={{fontSize:13,color:'var(--text2)',fontWeight:700,marginBottom:12}}>🤔 How well do you remember it?</p>
           <div className="grade-btns">
             {GRADES.map(g=>(
               <button key={g.key} className="grade-btn" style={{'--gc':g.color}}

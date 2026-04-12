@@ -1,7 +1,7 @@
-const BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+﻿const BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function getToken() {
-  return localStorage.getItem('lingai_token');
+  return localStorage.getItem('pengwin_token');
 }
 
 async function request(method, path, body, opts = {}) {
@@ -22,7 +22,7 @@ async function request(method, path, body, opts = {}) {
   if (!res.ok) {
     if (res.status === 401) {
       // Clear stale token so protected screens can redirect to login.
-      localStorage.removeItem('lingai_token');
+      localStorage.removeItem('pengwin_token');
     }
     const msg = data.detail || data.message || `HTTP ${res.status}`;
     throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
@@ -39,7 +39,7 @@ export const api = {
   postForm: (path, formData) => request('POST', path, formData, { formData: true }),
 };
 
-// ── Auth ────────────────────────────────────────────────────
+// â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const authApi = {
   register: (data)             => api.post('/api/auth/register', data),
   login: (email, password) => {
@@ -50,14 +50,14 @@ export const authApi = {
   },
 };
 
-// ── Users ───────────────────────────────────────────────────
+// â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const userApi = {
   me:        ()    => api.get('/api/users/me'),
   dashboard: ()    => api.get('/api/users/me/dashboard'),
   progress:  ()    => api.get('/api/users/me/progress'),
 };
 
-// ── Lessons ─────────────────────────────────────────────────
+// â”€â”€ Lessons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const lessonApi = {
   list:     (params = {}) => {
     const q = new URLSearchParams(params).toString();
@@ -70,7 +70,7 @@ export const lessonApi = {
   moderate: (id, status)   => api.patch(`/api/lessons/${id}/moderate`, { status }),
 };
 
-// ── Questions ───────────────────────────────────────────────
+// â”€â”€ Questions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const questionApi = {
   list:     (params = {}) => {
     const q = new URLSearchParams(params).toString();
@@ -86,13 +86,13 @@ export const questionApi = {
     api.post('/api/questions/practice/submit', { question_id, user_answer }),
 };
 
-// ── Review ──────────────────────────────────────────────────
+// â”€â”€ Review â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const reviewApi = {
   due:    ()               => api.get('/api/review/due'),
   submit: (card_id, result) => api.post('/api/review/submit', { card_id, result }),
 };
 
-// ── Chat ────────────────────────────────────────────────────
+// â”€â”€ Chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const chatApi = {
   history:      ()      => api.get('/api/chat/history'),
   send:         (content) => api.post('/api/chat/send', { content }),
@@ -102,7 +102,7 @@ export const chatApi = {
   clear:        ()      => api.delete('/api/chat/history'),
 };
 
-// ── Admin ───────────────────────────────────────────────────
+// â”€â”€ Admin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const adminApi = {
   stats:           ()           => api.get('/api/admin/stats'),
   users:           ()           => api.get('/api/admin/users'),
@@ -113,3 +113,4 @@ export const adminApi = {
   moderateQ:       (id, status) => api.patch(`/api/questions/${id}/moderate`, { status }),
   moderateL:       (id, status) => api.patch(`/api/lessons/${id}/moderate`, { status }),
 };
+
