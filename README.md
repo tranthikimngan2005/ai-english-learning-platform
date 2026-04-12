@@ -1,35 +1,100 @@
-# 🐧 Pengwin - AI English Learning Platform
-# Install & Running document
-## 🛠️ Yêu cầu hệ thống
-* **Python:** v3.12+ (Hỗ trợ chuẩn `datetime.UTC`)
-* **Node.js:** v18.x hoặc mới hơn
-* **Cơ sở dữ liệu:** SQLite (Đã tích hợp sẵn trong dự án)
+# Pengwin - AI English Learning Platform
+
+## System Requirements
+
+Make sure your system meets the following requirements before running the project:
+
+* **Python:** `>= 3.11` (supports `datetime.UTC`)
+* **Node.js:** `>= 18.x`
+* **Database:** SQLite *(pre-configured in the project)*
 
 ---
 
-##  Hướng dẫn cài đặt và Khởi chạy
+## Installation & Running Guide
 
 ### 1. Backend (FastAPI)
-Di chuyển vào thư mục backend:
+
+#### Step 1: Navigate to backend folder
+
 ```bash
 cd backend/lingai
-### 2. Cài đặt các thư viện cần thiết:
+```
 
-Bash
-pip install fastapi uvicorn sqlalchemy pydantic-settings python-multipart passlib[bcrypt] python-jose[cryptography] httpx email-validator pandas
-Khởi chạy server:
+#### Step 2: Install dependencies
 
-Bash
+```bash
+pip install -r requirements.txt
+```
+
+#### Step 3: Run the server
+
+```bash
 python -m uvicorn app.main:app --reload
-API Swagger UI: http://127.0.0.1:8000/docs
-### 3. Frontend (ReactJS)
-Di chuyển vào thư mục frontend:
+```
 
-Bash
+#### API Documentation
+
+* Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+---
+
+### 2. Frontend (ReactJS)
+
+#### Step 1: Navigate to frontend folder
+
+```bash
 cd lingai-frontend
-Cài đặt package và khởi chạy:
+```
 
-Bash
+#### Step 2: Install dependencies
+
+```bash
 npm install
+```
+
+#### Step 3: Start the application
+
+```bash
 npm start
-Giao diện: http://localhost:3000
+```
+
+#### Web Interface
+
+* URL: [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Project Structure (Optional)
+
+```text
+ai-english-learning-platform/
+|-- backend/
+|   `-- lingai/
+|       `-- app/
+|
+|-- lingai-frontend/
+|
+`-- README.md
+```
+
+---
+
+## Notes
+
+* Ensure backend is running before starting frontend.
+* Default ports:
+	* Backend: `8000`
+	* Frontend: `3000`
+* SQLite database is automatically initialized.
+
+---
+
+## Tips
+
+* Use virtual environment for Python:
+
+```bash
+python -m venv venv
+venv\Scripts\activate     # Windows
+source venv/bin/activate   # Linux/Mac
+```
