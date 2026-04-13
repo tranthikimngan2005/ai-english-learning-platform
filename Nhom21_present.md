@@ -1,226 +1,139 @@
 
 
-\# SLIDE 1 - TIÊU ĐỀ
+# SLIDE 1 - TIÊU ĐỀ
 
+## Nền tảng học tiếng Anh tích hợp trí tuệ nhân tạo: PENGWIN
 
+### Học phần: Phát triển ứng dụng Web
 
-\## Nền Tảng Học Tiếng Anh Tích Hợp Trí Tuệ Nhân Tạo: PENGWIN
+- **Nhóm thực hiện:** Pengwin AI Team
+- **Sinh viên:**
+	- Trần Quốc Sang - 23715111 (Trưởng nhóm)
+	- Võ Thành Nhã - 23709251
+	- Trần Thị Kim Ngân - 23719511
+- **Giảng viên hướng dẫn:** ThS. Trương Vĩnh Linh
 
-\### Học phần: Phát triển ứng dụng Web
+---
 
-
-
-\- \*\*Nhóm thực hiện:\*\* Pengwin AI Team
-
-\- \*\*Sinh viên:\*\*
-
-&#x20; - Trần Quốc Sang - 23715111 (Trưởng nhóm)
-
-&#x20; - Võ Thành Nhã - 23709251
-
-&#x20; - Trần Thị Kim Ngân - 23719511
-
-\- \*\*Giảng viên hướng dẫn:\*\* ThS Trương Vĩnh Linh
-
-\---
-
-
-
-\# SLIDE 2 - GIỚI THIỆU BÀI TOÁN
-
-
+# SLIDE 2 - GIỚI THIỆU BÀI TOÁN
 
 Người học tiếng Anh thường gặp 3 vấn đề chính:
 
-\- \*\*Mất động lực:\*\* Khó duy trì thói quen khi tự học một mình trong thời gian dài.
+- **Thiếu động lực:** Khó duy trì thói quen học đều mỗi ngày.
+- **Thiếu phản hồi tức thì:** Không có môi trường luyện tập và sửa lỗi liên tục.
+- **Lộ trình chưa cá nhân hóa:** Khó theo dõi tiến độ và ôn tập theo mức độ ghi nhớ.
 
-\- \*\*Thiếu phản hồi:\*\* Không có người sửa lỗi tức thì khi luyện viết hoặc nói.
+**Pengwin** giải quyết các vấn đề này bằng:
 
-\- \*\*Lộ trình rời rạc:\*\* Kiến thức chưa được cá nhân hóa theo điểm mạnh/yếu của từng người.
+- **Micro-learning:** Bài học và câu hỏi được chia nhỏ, dễ tiếp thu.
+- **Interactive Practice:** Làm bài tập và nhận kết quả ngay.
+- **AI Chat Tutor:** Hỗ trợ luyện hội thoại, lưu lịch sử chat và gợi ý phản hồi theo ngữ cảnh.
+- **Streak + Spaced Repetition:** Tăng động lực học đều và tối ưu ôn tập dài hạn.
 
+---
 
+# SLIDE 3 - MỤC TIÊU HỆ THỐNG
 
-\*\*Dự án Pengwin\*\* giải quyết các vấn đề trên bằng sự kết hợp giữa:
+- Xây dựng nền tảng học trực tuyến đa người dùng với phân quyền rõ ràng.
+- Hỗ trợ 3 vai trò chính: **Student, Creator, Admin**.
+- Cung cấp các chức năng cốt lõi: đăng nhập, luyện tập, ôn tập, chat AI, quản lý nội dung.
+- Theo dõi tiến độ học tập qua **Dashboard**, **Progress** và **Streak**.
+- Áp dụng **SM-2 / Spaced Repetition** để nhắc lịch ôn tập tự động.
+- Tạo trải nghiệm học tập liên tục, trực quan và có tính tương tác cao.
 
-\- \*\*Micro-learning:\*\* Chia nhỏ bài học, giúp tiếp thu nhanh mỗi ngày.
+---
 
-\- \*\*Interactive Quiz:\*\* Hệ thống câu hỏi đa dạng, chấm điểm tự động.
+# SLIDE 4 - USE CASE / CHỨC NĂNG
 
-\- \*\*AI Chat Tutor:\*\* Hỗ trợ hội thoại, sửa lỗi ngữ pháp và lưu lịch sử luyện tập.
+### 🐧 Người học (Student)
 
-\- \*\*Cơ chế Streak \& Spaced Repetition (SM-2):\*\* Tối ưu hóa khả năng ghi nhớ dài hạn.
+- Đăng ký, đăng nhập và quản lý hồ sơ cá nhân.
+- Xem Dashboard, điểm tiến bộ và số ngày streak.
+- Làm bài **Practice** và nhận kết quả ngay sau khi nộp.
+- Ôn tập các thẻ đến hạn trong **Review**.
+- Chat với **AI Tutor** để luyện viết và phản hồi nội dung.
 
+### 🐧 Người sáng tạo (Creator)
 
+- Tạo và quản lý **Lessons**.
+- Tạo, chỉnh sửa và quản lý **Questions**.
+- Theo dõi trạng thái duyệt nội dung từ Admin.
 
-\---
+### 🐧 Quản trị viên (Admin)
 
+- Quản lý người dùng, phân quyền và khóa/mở tài khoản.
+- Duyệt nội dung bài học và câu hỏi từ Creator.
+- Xem thống kê hệ thống và danh sách người dùng.
 
+---
 
-\# SLIDE 3 - MỤC TIÊU HỆ THỐNG
+# SLIDE 5 - KIẾN TRÚC HỆ THỐNG
 
+### Frontend
 
+- **React 18** + **React Router v6**.
+- Các trang chính: Login, Register, Dashboard, Skills, Practice, Review, Progress, Chat, Profile.
+- Các trang quản trị: CreatorLessons, CreatorQuestions, AdminDashboard, AdminUsers, AdminContent.
 
-\- Xây dựng nền tảng học trực tuyến đa người dùng (Multi-user).
+### Backend
 
-\- Hệ thống quản lý tài khoản bảo mật, phân quyền chi tiết (Student, Creator, Admin).
+- **FastAPI** chạy với **Python 3.12+**.
+- Các module chính: Auth, Users, Lessons, Questions, Review, Chat, Admin.
+- Logic nghiệp vụ: JWT, SM-2, streak tracking, phân quyền theo vai trò.
 
-\- Cung cấp kho bài tập kỹ năng đa dạng (Reading, Listening, Writing, Speaking).
+### Database
 
-\- Theo dõi tiến độ trực quan: Dashboard, thống kê kỹ năng, hệ thống Streak.
+- **SQLite + SQLAlchemy**.
+- Lưu trữ người dùng, skill profile, bài học, câu hỏi, review card, streak và lịch sử chat.
 
-\- Áp dụng thuật toán \*\*SM-2 (Spaced Repetition)\*\* để tự động nhắc lịch ôn tập.
+### Bảo mật
 
-\- Tạo trải nghiệm học tập có tính tương tác cao và duy trì động lực mỗi ngày.
+- **JWT** để duy trì phiên đăng nhập.
+- Mật khẩu được mã hóa bằng **Passlib/Bcrypt**.
+- CORS được cấu hình để frontend gọi API từ backend.
 
+---
 
+# SLIDE 6 - QUY TRÌNH DEMO
 
-\---
+1. **Đăng nhập Student:** vào Dashboard để xem tiến độ, streak và số bài đến hạn.
+2. **Practice:** làm bài trắc nghiệm, nộp đáp án và xem kết quả tức thì.
+3. **Review:** ôn tập các thẻ đến hạn theo cơ chế SM-2.
+4. **Chat:** trao đổi với AI Tutor và xem lịch sử hội thoại.
+5. **Admin:** đăng nhập quyền Admin để duyệt nội dung và xem thống kê hệ thống.
 
+---
 
+# SLIDE 7 - ỨNG DỤNG TRÍ TUỆ NHÂN TẠO (AI)
 
-\# SLIDE 4 - USE CASE / CHỨC NĂNG
+Hệ thống tích hợp AI ở 2 mức:
 
+- **AI Tutor:** hỗ trợ hội thoại và phản hồi theo ngữ cảnh học tập.
+- **Hỗ trợ phát triển:** nhóm sử dụng AI để tăng tốc xây dựng giao diện, tạo dữ liệu mẫu, hỗ trợ debug và viết test.
 
+Trong dự án hiện tại, phần AI được tổ chức theo hướng thực dụng: ưu tiên trải nghiệm luyện tập, lưu lịch sử chat và chuẩn bị sẵn hệ thống để mở rộng thêm mô hình ngôn ngữ lớn ở các phiên bản sau.
+- Công cụ AI sử dụng:
+  + Claude
+  + Gemnini
+  + Github Copiplot
+  + Chat GPT
 
-\### 🐧 Người học (Student)
+---
 
-\- Đăng ký/Đăng nhập, quản lý hồ sơ cá nhân.
+# SLIDE 8 - KẾT QUẢ & ĐÁNH GIÁ
 
-\- Luyện tập kỹ năng và nhận phản hồi điểm số tức thì.
+### Đã hoàn thành (MVP)
 
-\- Ôn tập từ vựng/ngữ pháp theo danh sách đến hạn (Due cards).
+- Hoàn thiện backend với đầy đủ các router nghiệp vụ chính.
+- Frontend React đồng bộ theo thương hiệu Pengwin và hỗ trợ đa thiết bị.
+- Tích hợp thành công dashboard, practice, review, chat và trang quản trị.
+- Có cơ chế streak và spaced repetition để hỗ trợ việc học liên tục.
 
-\- Chat với AI Tutor để luyện kỹ năng Writing/Speaking.
+### Hướng phát triển
 
+- Nâng cấp AI Tutor để phản hồi thông minh hơn theo ngữ cảnh.
+- Bổ sung phân tích dữ liệu học tập chi tiết hơn.
+- Mở rộng thêm nội dung luyện tập theo nhiều chủ đề và cấp độ.
 
-
-\### 🐧 Người sáng tạo (Creator)
-
-\- Soạn thảo và quản lý bài học (Lessons).
-
-\- Thiết kế bộ câu hỏi trắc nghiệm (Questions).
-
-\- Theo dõi trạng thái phê duyệt nội dung từ Admin.
-
-
-
-\### 🐧 Quản trị viên (Admin)
-
-\- Quản lý người dùng (Phân quyền, khóa/mở tài khoản).
-
-\- Kiểm duyệt nội dung bài học và câu hỏi từ Creator.
-
-\- Theo dõi số liệu thống kê tổng thể của toàn bộ hệ thống.
-
-
-
-\---
-
-
-
-\# SLIDE 5 - KIẾN TRÚC HỆ THỐNG
-
-
-
-\### Frontend (Giao diện người dùng)
-
-\- Công nghệ: \*\*ReactJS\*\*
-
-\- Chức năng: Dashboard tương tác, giao diện ôn tập thẻ, cửa sổ AI Chat.
-
-
-
-\### Backend (Xử lý máy chủ)
-
-\- Công nghệ: \*\*FastAPI (Python 3.12+)\*\*
-
-\- Module: Xử lý xác thực (JWT), Logic Spaced Repetition, Quản lý Streak.
-
-
-
-\### Database (Cơ sở dữ liệu)
-
-\- \*\*SQLite + SQLAlchemy\*\*: Lưu trữ dữ liệu người dùng, nội dung bài học và lịch sử chat.
-
-
-
-\### Bảo mật \& Auth
-
-\- \*\*JWT (JSON Web Token)\*\* để duy trì phiên đăng nhập.
-
-\- Mã hóa mật khẩu bằng \*\*Passlib/Bcrypt\*\* đảm bảo an toàn dữ liệu.
-
-
-
-\---
-
-
-
-\# SLIDE 6 - QUY TRÌNH DEMO
-
-
-
-1\. \*\*Đăng nhập Student:\*\* Giới thiệu giao diện Dashboard và hệ thống Streak.
-
-2\. \*\*Luyện tập (Practice):\*\* Làm bài tập thực tế, submit và xem điểm số cập nhật.
-
-3\. \*\*Ôn tập (Review):\*\* Trải nghiệm thuật toán SM-2 (Thẻ hiện lên dựa trên độ khó đã chọn).
-
-4\. \*\*AI Chat:\*\* Thực hiện hội thoại với AI, nhận diện khả năng sửa lỗi của chatbot.
-
-5\. \*\*Quản trị (Admin):\*\* Đăng nhập quyền Admin để duyệt nội dung và xem thống kê User.
-
-
-
-\---
-
-
-
-\# SLIDE 7 - ỨNG DỤNG TRÍ TUỆ NHÂN TẠO (AI)
-
-
-
-Hệ thống tích hợp AI vào hai khía cạnh chính:
-
-\- \*\*AI Tutor:\*\* Tích hợp mô hình ngôn ngữ lớn để sửa lỗi ngữ pháp và hội thoại theo ngữ cảnh của người học.
-
-\- \*\*Hỗ trợ phát triển (Vibe Coding):\*\* Nhóm sử dụng AI (Cursor, Copilot) để:
-
-&#x20; - Tối ưu hóa cấu trúc mã nguồn (Boilerplate).
-
-&#x20; - Tự động sinh dữ liệu mẫu (Dummy data) cho 500+ Flashcards và Quiz..
-
-&#x20; - Hỗ trợ gỡ lỗi (Debugging) và viết Unit test.
-
-
-
-\---
-
-
-
-\# SLIDE 8 - KẾT QUẢ \& ĐÁNH GIÁ
-
-
-
-\### Đã hoàn thành (MVP)
-
-\- Hoàn thiện Backend với đầy đủ các Router nghiệp vụ.
-
-\- Hệ thống Frontend đồng bộ thương hiệu \*\*Pengwin\*\*, hỗ trợ đa thiết bị.
-
-\- Tích hợp thành công thuật toán SM-2 và hệ thống theo dõi Streak.
-
-
-
-\### Hướng phát triển
-
-\- Nâng cấp AI Tutor để hỗ trợ phát âm (Voice-to-Text).
-
-\- Bổ sung hệ thống phân tích sâu (Data Analytics) về hành vi người dùng.
-
-\- Mở rộng kho nội dung bài học theo các chứng chỉ quốc tế (IELTS/TOEIC).
-
-
-
-\---
+---
 
