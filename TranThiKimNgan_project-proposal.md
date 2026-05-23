@@ -221,20 +221,3 @@ powershell -ExecutionPolicy Bypass -File .\run_pengwin.ps1
 * Backend API docs: http://localhost:8000/docs
 
 ---
-
-## GỢI Ý HÌNH ẢNH ĐƯA VÀO BÁO CÁO
-
-* **Use Case Diagram:** mô tả 3 vai trò Student, Creator, Admin.
-* **ERD:** mô tả users, lessons, questions, attempts, review cards, streaks, chat messages.
-* **Mockup / Wireframe:** màn hình Dashboard chính của Student.
-* **System Architecture Diagram:** frontend React, backend FastAPI, SQLite, AI provider, Docker Compose.
-
----
-
-## KẾT LUẬN
-
-Pengwin là nền tảng học tiếng Anh có cấu trúc rõ ràng, hỗ trợ đầy đủ luồng học, luyện tập, ôn tập và quản trị nội dung. Dự án đã được chuẩn bị sẵn script chạy nhanh để giảng viên có thể mở và kiểm thử trực tiếp trên máy của mình mà không cần cấu hình thủ công nhiều bước.
-
-## LỜI CẢM ƠN
-
-Cảm ơn thầy/cô và các bạn đã dành thời gian xem báo cáo và demo. Nhóm mong nhận được góp ý để tiếp tục hoàn thiện dự án.
