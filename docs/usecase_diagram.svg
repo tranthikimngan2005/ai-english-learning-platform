@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <style>
+    .actor { font: 18px sans-serif; fill: #0b5cff; font-weight:700 }
+    .uc { fill: #f8fbff; stroke:#0b5cff; stroke-width:2 }
+    .label { font: 14px sans-serif; fill: #0b2133 }
+    .line { stroke:#0b5cff; stroke-width:2; stroke-linecap:round }
+  </style>
+
+  <!-- Actors -->
+  <g id="actors">
+    <text class="actor" x="40" y="120">Student</text>
+    <circle cx="90" cy="100" r="22" fill="#ffffff" stroke="#0b5cff" stroke-width="2"/>
+
+    <text class="actor" x="40" y="320">Creator</text>
+    <circle cx="90" cy="300" r="22" fill="#ffffff" stroke="#0b5cff" stroke-width="2"/>
+
+    <text class="actor" x="40" y="520">Admin</text>
+    <circle cx="90" cy="500" r="22" fill="#ffffff" stroke="#0b5cff" stroke-width="2"/>
+  </g>
+
+  <!-- Use case ovals -->
+  <g id="usecases">
+    <ellipse class="uc" cx="640" cy="90" rx="220" ry="36"/>
+    <text class="label" x="520" y="96">Register / Login</text>
+
+    <ellipse class="uc" cx="640" cy="190" rx="220" ry="36"/>
+    <text class="label" x="560" y="196">View Dashboard</text>
+
+    <ellipse class="uc" cx="640" cy="280" rx="220" ry="36"/>
+    <text class="label" x="540" y="286">Practice / Submit Answer</text>
+
+    <ellipse class="uc" cx="640" cy="370" rx="220" ry="36"/>
+    <text class="label" x="560" y="376">Review Due Cards</text>
+
+    <ellipse class="uc" cx="640" cy="460" rx="220" ry="36"/>
+    <text class="label" x="540" y="466">Chat with AI Tutor</text>
+
+    <ellipse class="uc" cx="920" cy="200" rx="200" ry="36"/>
+    <text class="label" x="840" y="206">Create Lesson</text>
+
+    <ellipse class="uc" cx="920" cy="280" rx="200" ry="36"/>
+    <text class="label" x="820" y="286">Create / Manage Questions</text>
+
+    <ellipse class="uc" cx="920" cy="360" rx="200" ry="36"/>
+    <text class="label" x="860" y="366">Moderate Content</text>
+
+    <ellipse class="uc" cx="920" cy="440" rx="200" ry="36"/>
+    <text class="label" x="850" y="446">Manage Users</text>
+  </g>
+
+  <!-- Connections Student -->
+  <line class="line" x1="114" y1="100" x2="420" y2="90"/>
+  <line class="line" x1="114" y1="100" x2="420" y2="190"/>
+  <line class="line" x1="114" y1="100" x2="420" y2="280"/>
+  <line class="line" x1="114" y1="100" x2="420" y2="370"/>
+  <line class="line" x1="114" y1="100" x2="420" y2="460"/>
+
+  <!-- Connections Creator -->
+  <line class="line" x1="114" y1="300" x2="760" y2="200"/>
+  <line class="line" x1="114" y1="300" x2="760" y2="280"/>
+  <line class="line" x1="114" y1="300" x2="760" y2="190"/>
+
+  <!-- Connections Admin -->
+  <line class="line" x1="114" y1="500" x2="860" y2="360"/>
+  <line class="line" x1="114" y1="500" x2="860" y2="440"/>
+  <line class="line" x1="114" y1="500" x2="760" y2="190"/>
+
+  <!-- Internal flows to moderation -->
+  <line class="line" x1="760" y1="286" x2="820" y2="346" stroke-dasharray="6 4"/>
+  <line class="line" x1="760" y1="206" x2="820" y2="346" stroke-dasharray="6 4"/>
+  <line class="line" x1="860" y1="366" x2="860" y2="420" stroke-dasharray="6 4"/>
+
+  <!-- Title -->
+  <text x="40" y="660" class="label">Pengwin Use Case Diagram</text>
+</svg>

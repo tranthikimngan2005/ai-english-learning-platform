@@ -1,110 +1,240 @@
-
 # PROJECT PROPOSAL
 
-## THÔNG TIN
+## THÔNG TIN CHUNG
 
-### Nhóm
+### Nhóm thực hiện
 
 * **Thành viên 1:** Trần Quốc Sang – 23715111 (Trưởng nhóm)
 * **Thành viên 2:** Võ Thanh Nhã – 23709251
-* **Thành viên 3:** Trần Thị Kim Ngân – 2371951
-### Git
+* **Thành viên 3:** Trần Thị Kim Ngân – 23719511
 
-* **Git repository:** [https://github.com/tranthikimngan2005/ai-english-learning-platform](https://github.com/tranthikimngan2005/ai-english-learning-platform)
+### Repository
 
----
-
-## MÔ TẢ DỰ ÁN
-
-### Ý tưởng
-
-Dự án **AI Gamified English Learning Platform** giải quyết vấn đề mất động lực khi tự học tiếng Anh bằng cách kết hợp **Gamification** (hệ thống Streak, nhiệm vụ) và **AI Conversation**. Điểm khác biệt nằm ở khả năng phản hồi tức thì từ AI giúp người học nhận ra lỗi sai ngữ pháp ngay trong lúc hội thoại, tạo trải nghiệm học tập cá nhân hóa và thú vị hơn các ứng dụng truyền thống.
-# Mục tiêu của dự án
-
-* xây dựng nền tảng học tiếng Anh trực tuyến
-* cung cấp các bài học micro-learning
-* hỗ trợ luyện hội thoại bằng AI
-* phân tích tiến độ học tập của người dùng
-* cá nhân hóa nội dung học tập
-
-### Chi tiết
-1. **Quản lý người dùng:** Đăng ký, đăng nhập và theo dõi tiến độ cá nhân.
-2. **Micro-learning:** Bài học ngắn (1–5 phút) về Từ vựng, Ngữ pháp, Nghe, Đọc.
-3. **Quiz System:** Bài tập đa dạng (trắc nghiệm, điền từ, dịch câu) có chấm điểm tự động.
-4. **Smart Streak:** Cơ chế thúc đẩy hoàn thành mục tiêu hàng ngày để duy trì chuỗi Streak học tập.
-5. **AI Conversation Tutor:** Luyện giao tiếp với AI, hỗ trợ sửa lỗi ngữ pháp và từ vựng theo thời gian thực.
-6. **Analytics & Recommendation:** Dashboard phân tích điểm mạnh/yếu và gợi ý nội dung học phù hợp.
+* **GitHub:** https://github.com/tranthikimngan2005/ai-english-learning-platform
 
 ---
 
-## PHÂN TÍCH & THIẾT KẾ
+## TÓM TẮT DỰ ÁN
+
+**Pengwin** là nền tảng học tiếng Anh trực tuyến tích hợp trí tuệ nhân tạo. Hệ thống được xây dựng theo hướng học tập cá nhân hóa, kết hợp micro-learning, practice theo kỹ năng, ôn tập lặp lại ngắt quãng, streak tạo động lực và AI chat tutor để hỗ trợ luyện viết, luyện hội thoại và phản hồi ngôn ngữ theo ngữ cảnh.
+
+### Mục tiêu
+
+* Xây dựng nền tảng học tiếng Anh trực tuyến đa vai trò.
+* Hỗ trợ học ngắn, dễ tiếp thu, theo từng kỹ năng.
+* Cung cấp môi trường luyện tập có chấm điểm và phản hồi tức thì.
+* Theo dõi tiến độ học tập và gợi ý nội dung cần ôn tập.
+* Tăng động lực học đều bằng streak và review thông minh.
+
+### Chức năng chính
+
+1. **Quản lý người dùng:** Đăng ký, đăng nhập, phân quyền và hồ sơ cá nhân.
+2. **Micro-learning:** Bài học ngắn theo các kỹ năng Reading, Listening, Writing, Speaking.
+3. **Practice / Quiz System:** Làm bài tập, chấm điểm tự động, lưu lịch sử làm bài.
+4. **Smart Streak:** Theo dõi chuỗi học tập hàng ngày.
+5. **AI Conversation Tutor:** Luyện hội thoại và hỗ trợ sửa lỗi ngôn ngữ.
+6. **Analytics & Recommendation:** Dashboard phân tích tiến độ và gợi ý ôn tập.
+
+---
+
+## PHÂN TÍCH VÀ THIẾT KẾ
 
 ### 1. Actors & Use Cases
 
-* **Student:** Actor chính thực hiện các Use Case: Đăng ký/Đăng nhập, Học bài, Làm Quiz, Luyện hội thoại AI, Xem Dashboard.
-* **Admin:** Actor quản lý: Quản lý khóa học (CRUD), Quản lý bộ câu hỏi Quiz, Quản lý tài khoản người dùng.
-* **Viewer:** Actor chưa đăng ký: Xem trang giới thiệu và danh sách khóa học công khai.
+* **Student:** Đăng ký/đăng nhập, xem dashboard, làm practice, review, chat AI, xem profile.
+* **Creator:** Tạo và quản lý lesson, question, nội dung học.
+* **Admin:** Duyệt nội dung, quản lý người dùng, kiểm soát hệ thống.
 
-### 2. Thiết kế Cơ sở dữ liệu (ERD)
+### 2. Kiến trúc hệ thống
 
-Hệ thống sử dụng **SQLite** với cấu trúc các bảng chính:
+* **Frontend:** React 18 + React Router v6.
+* **Backend:** FastAPI + Python 3.11/3.12, tổ chức theo router/service.
+* **Database:** SQLite qua SQLAlchemy.
+* **Bảo mật:** JWT, Passlib/Bcrypt, CORS.
+* **AI:** Cấu hình provider như Groq/Gemini/OpenAI theo biến môi trường.
 
-* `Users`: Lưu thông tin cá nhân, mật khẩu (hash), và số ngày Streak hiện tại.
-* `Courses` & `Lessons`: Lưu thông tin phân cấp về khóa học và các bài học nhỏ.
-* `Questions`: Lưu bộ câu hỏi, đáp án và loại câu hỏi (trắc nghiệm, điền từ).
-* `Learning_Logs`: Lưu lịch sử học tập, số điểm đạt được của từng Student.
+### 3. Các mô-đun nghiệp vụ chính
 
-### 3. Kiến trúc Hệ thống
+* Authentication: đăng ký, đăng nhập, phân quyền.
+* Lessons / Questions: quản lý nội dung học và câu hỏi.
+* Practice: tạo session luyện tập và chấm đáp án.
+* Review: cơ chế spaced repetition và ôn tập thẻ đến hạn.
+* Recommendation: gợi ý câu hỏi cần ôn dựa trên lỗi trước đó.
+* Chat: lưu lịch sử hội thoại AI.
+* Streak: theo dõi số ngày học liên tục.
 
-* **Frontend (ReactJS):** Xử lý giao diện động, gọi API và hiển thị biểu đồ Dashboard.
-* **Backend (FastAPI):** Xử lý logic nghiệp vụ, quản lý Authentication qua JWT và kết nối với AI Model.
-* **Database (SQLite):** Lưu trữ dữ liệu quan hệ nhẹ nhàng, phù hợp cho môi trường lab và phát triển nhanh.
+### 4. Thiết kế cơ sở dữ liệu
+
+Các bảng chính trong hệ thống:
+
+* `users`: thông tin người dùng, vai trò, trạng thái hoạt động.
+* `skill_profiles`: tiến độ theo từng kỹ năng của người học.
+* `lessons`: nội dung bài học.
+* `questions`: bộ câu hỏi, passage, answer, explanation.
+* `question_attempts`: lịch sử làm bài.
+* `review_cards`: thẻ ôn tập theo SM-2-like.
+* `user_error_tracks`: theo dõi lỗi sai để đề xuất ôn lại.
+* `streaks`: chuỗi học tập.
+* `chat_messages`: lịch sử chat AI.
+
+### 5. Quan hệ dữ liệu
+
+* `users` 1 - n `skill_profiles`
+* `users` 1 - 1 `streaks`
+* `users` 1 - n `chat_messages`
+* `users` 1 - n `question_attempts`
+* `users` 1 - n `review_cards`
+* `users` 1 - n `user_error_tracks`
+* `users` 1 - n `questions` qua `creator_id`
+* `lessons` 1 - n `questions`
+* `questions` 1 - n `question_attempts`
+* `questions` 1 - n `review_cards`
+* `questions` 1 - n `user_error_tracks`
 
 ---
 
-## KẾ HOẠCH
+## KẾ HOẠCH PHÁT TRIỂN
 
-### 1. MVP (Deadline: 12.04.2026)
+### MVP
 
-* **Chức năng:** Hoàn thiện luồng Đăng ký/Đăng nhập; Quản lý bài học & Quiz (phía Admin); Làm bài & lưu điểm (phía Student).
-* **Kế hoạch kiểm thử:**
-* **Unit Test:** Kiểm tra logic chấm điểm bài Quiz và xác thực JWT.
-* **Integration Test:** Kiểm tra sự đồng bộ dữ liệu giữa Frontend ReactJS và Backend FastAPI.
+* Hoàn thiện đăng ký/đăng nhập.
+* Quản lý lessons và questions.
+* Practice và lưu kết quả làm bài.
+* Basic dashboard và streak.
 
+### Beta
 
-* **Chức năng dự trù:** Hệ thống Streak và AI Chatbot sơ khai.
-
-### 2. Beta Version (Deadline: 10.05.2026)
-
-* **Nội dung:** Tích hợp đầy đủ AI Conversation Tutor; Dashboard phân tích tiến độ; Hệ thống Recommendation gợi ý bài học dựa trên lịch sử sai sót.
-* **Kết quả:** Hoàn thiện giao diện UI/UX, báo cáo kiểm thử tổng thể và tối ưu hiệu suất API.
-
----
-
-## CÂU HỎI CHO GIẢNG VIÊN
-
-* Nhóm có thể sử dụng các thư viện AI mã nguồn mở (như HuggingFace) thay vì API trả phí để tích hợp vào phần Conversation không?
-* Về phần Recommendation System, thầy có yêu cầu nhóm phải sử dụng thuật toán Machine Learning chuyên sâu hay chỉ cần dùng logic dựa trên Rule-based?
+* AI Conversation Tutor.
+* Dashboard phân tích tiến độ.
+* Recommendation theo lịch sử sai sót.
+* Review / spaced repetition hoàn chỉnh.
 
 ---
 
-## HƯỚNG DẪN CÀI ĐẶT (INSTALLATION)
+## KẾT QUẢ KIỂM THỬ
 
-1. **Clone:** `git clone https://github.com/tranthikimngan2005/ai-english-learning-platform`.
-2. **Backend:**
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate (hoặc venv\Scripts\activate trên Windows)
-pip install -r requirements.txt
-uvicorn main:app --reload
+Các testcase đã triển khai trong `backend/lingai/tests` gồm:
 
+* Đăng ký và đăng nhập thành công.
+* Kiểm tra lỗi khi trùng email.
+* Kiểm tra lỗi đăng nhập sai mật khẩu.
+* Kiểm tra lưu và truy xuất câu hỏi TOEIC Part 7.
+* Kiểm tra recommendation chỉ lấy câu hỏi đến hạn.
+* Kiểm tra lấy 50 câu hỏi cho một session practice.
+
+### Bảng kết quả tóm tắt
+
+| STT | Test case | Kết quả mong đợi | Kết quả thực tế |
+| --- | --- | --- | --- |
+| 1 | Đăng ký tài khoản mới | Tạo user thành công | Passed |
+| 2 | Đăng ký trùng email | Trả lỗi 400 | Passed |
+| 3 | Đăng nhập sai mật khẩu | Trả lỗi 401 | Passed |
+| 4 | Lưu và truy xuất dữ liệu Part 7 | Dữ liệu lưu đúng | Passed |
+| 5 | Recommendation lọc câu đến hạn | Chỉ trả về câu đến hạn | Passed |
+| 6 | Practice 50 câu | Trả về đúng 50 câu | Passed |
+
+---
+
+## HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY NHANH
+
+### Cách chạy nhanh bằng script
+
+Nhóm đã chuẩn bị script `run_pengwin.ps1` ở thư mục gốc. Đây là cách được khuyến nghị để giảng viên chạy project nhanh trên máy của mình.
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+powershell -ExecutionPolicy Bypass -File .\run_pengwin.ps1
 ```
 
+Sau khi script chạy xong, truy cập:
 
-3. **Frontend:**
+* Frontend: http://localhost:3000
+* Backend API docs: http://localhost:8000/docs
+
+### Script sẽ tự động
+
+* seed dữ liệu demo cho hệ thống,
+* cài dependencies cần thiết,
+* khởi chạy backend và frontend,
+* mở sẵn môi trường để giảng viên test.
+
+### Tài khoản demo
+
+| Vai trò | Username / Email | Password |
+| --- | --- | --- |
+| Student (User) | an@pengwin.com | student123 |
+| Creator | creator@pengwin.com | creator123 |
+| Admin | admin@pengwin.com | admin123 |
+
+### Cài đặt thủ công nếu cần
+
+1. Clone repository:
+
+```bash
+git clone https://github.com/tranthikimngan2005/ai-english-learning-platform
+cd ai-english-learning-platform
+```
+
+2. Backend:
+
+```powershell
+cd backend/lingai
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+3. Frontend:
+
 ```bash
 cd frontend
 npm install
 npm start
+```
 
+---
+
+## DEMO HỆ THỐNG
+
+### Demo link
+
+* https://github.com/tranthikimngan2005/ai-english-learning-platform
+
+### Tài khoản dùng để demo
+
+| Vai trò | Username / Email | Password |
+| --- | --- | --- |
+| Student (User) | an@pengwin.com | student123 |
+| Creator | creator@pengwin.com | creator123 |
+| Admin | admin@pengwin.com | admin123 |
+
+### Cách chạy demo nhanh
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_pengwin.ps1
+```
+
+### Màn hình truy cập sau khi chạy
+
+* Frontend: http://localhost:3000
+* Backend API docs: http://localhost:8000/docs
+
+---
+
+## GỢI Ý HÌNH ẢNH ĐƯA VÀO BÁO CÁO
+
+* **Use Case Diagram:** mô tả 3 vai trò Student, Creator, Admin.
+* **ERD:** mô tả users, lessons, questions, attempts, review cards, streaks, chat messages.
+* **Mockup / Wireframe:** màn hình Dashboard chính của Student.
+* **System Architecture Diagram:** frontend React, backend FastAPI, SQLite, AI provider, Docker Compose.
+
+---
+
+## KẾT LUẬN
+
+Pengwin là nền tảng học tiếng Anh có cấu trúc rõ ràng, hỗ trợ đầy đủ luồng học, luyện tập, ôn tập và quản trị nội dung. Dự án đã được chuẩn bị sẵn script chạy nhanh để giảng viên có thể mở và kiểm thử trực tiếp trên máy của mình mà không cần cấu hình thủ công nhiều bước.
+
+## LỜI CẢM ƠN
+
+Cảm ơn thầy/cô và các bạn đã dành thời gian xem báo cáo và demo. Nhóm mong nhận được góp ý để tiếp tục hoàn thiện dự án.
