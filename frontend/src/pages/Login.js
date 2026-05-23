@@ -56,7 +56,7 @@ export default function Login() {
       navigate('/dashboard');
     } catch(err) {
       if (isServerOfflineError(err?.message)) {
-        toast("Pengwin can't find the server, Ngân ơi!", 'error');
+        toast("Pengwin can't find the server", 'error');
       } else {
         toast(err.message, 'error');
       }
