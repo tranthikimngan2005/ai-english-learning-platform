@@ -231,5 +231,8 @@ powershell -ExecutionPolicy Bypass -File .\run_pengwin.ps1
 
 * Frontend: http://localhost:3000
 * Backend API docs: http://localhost:8000/docs
-
+### Deploy
+```https://vercel.com/kim-ngans-projects-e9f86c37/toeic-learning-english-cloud-sebk/J3rCZuzRAd1iEpQ7uBRbSmbGB7Ys
+```
+- Lưu ý: ***Tạo user mới khi sử dụng giao diện deploy***
 ---
