@@ -137,9 +137,9 @@ Các testcase đã triển khai trong `backend/lingai/tests` gồm:
 
 ## HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY NHANH
 
-### Cách chạy nhanh bằng script
+### Cách chạy nhanh bằng script: có 2 cách
 
-Nhóm đã chuẩn bị script `run_pengwin.ps1` ở thư mục gốc. Đây là cách được khuyến nghị để giảng viên chạy project nhanh trên máy của mình.
+Cách 1: Nhóm đã chuẩn bị script `run_pengwin.ps1` ở thư mục gốc. Đây là cách được khuyến nghị để giảng viên chạy project nhanh trên máy của mình.
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
@@ -158,6 +158,15 @@ Sau khi script chạy xong, truy cập:
 * khởi chạy backend và frontend,
 * mở sẵn môi trường để giảng viên test.
 
+Cách 2: chạy bằng docker:
+chạy lệnh
+``` 
+docker compose up --build -d
+```
+Sau khi script chạy xong, truy cập:
+
+* Frontend: http://localhost:3000
+* Backend API docs: http://localhost:8000/docs
 ### Tài khoản demo
 
 | Vai trò | Username / Email | Password |
