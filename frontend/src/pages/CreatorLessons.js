@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import './Creator.css';
 
 const PART_OPTIONS = [6, 7];
+const SINGLE_PART = 5;
 const SCORE_LEVELS = [300, 500, 750, 900];
 const ANSWER_KEYS = ['A', 'B', 'C', 'D'];
 const FLASHCARD_CATEGORIES = ['Office', 'Travel', 'Business', 'Meetings', 'Finance', 'Email', 'HR', 'Logistics', 'General'];
@@ -33,6 +34,16 @@ const createFlashcardForm = () => ({
   example_en: '',
   example_vi: '',
   category: 'Office',
+});
+
+const emptySingleQuestion = () => ({
+  id: null,
+  content: '',
+  options: ['', '', '', ''],
+  correct_answer: 'A',
+  explanation: '',
+  level: 500,
+  tags: '',
 });
 
 function buildPassageGroups(questions) {
@@ -87,6 +98,11 @@ export default function CreatorLessons() {
   const [savingFlashcard, setSavingFlashcard] = useState(false);
   const [showFlashcardForm, setShowFlashcardForm] = useState(false);
   const [flashcardForm, setFlashcardForm] = useState(createFlashcardForm());
+
+  // Part 5 single question states
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [questionForm, setQuestionForm] = useState(emptySingleQuestion());
+  const [savingQuestion, setSavingQuestion] = useState(false);
 
   const loadPassages = useCallback(async () => {
     setLoadingPassages(true);
@@ -321,19 +337,105 @@ export default function CreatorLessons() {
     }
   };
 
+  // ------- Part 5 single question handlers -------
+  const openNewQuestion = () => {
+    setQuestionForm(emptySingleQuestion());
+    setShowQuestionForm(true);
+  };
+
+  const openEditQuestion = (q) => {
+    setQuestionForm({
+      id: q.id,
+      content: q.content || '',
+      options: (q.options || ['', '', '', '']).slice(0,4),
+      correct_answer: q.correct_answer || 'A',
+      explanation: q.explanation || '',
+      level: q.level || 500,
+      tags: q.tags || '',
+    });
+    setShowQuestionForm(true);
+  };
+
+  const updateQuestionOption = (index, value) => {
+    setQuestionForm(prev => ({ ...prev, options: prev.options.map((o,i)=> i===index? value : o) }));
+  };
+
+  const validateQuestionForm = () => {
+    if (!questionForm.content.trim()) { const msg='Vui lòng nhập nội dung câu hỏi.'; toast(msg, 'error'); console.warn(msg); alert(msg); return false; }
+    if (!questionForm.options.every(o => String(o || '').trim().length>0)) { const msg='Vui lòng nhập đủ 4 lựa chọn.'; toast(msg, 'error'); console.warn(msg); alert(msg); return false; }
+    if (!ANSWER_KEYS.includes(questionForm.correct_answer)) { const msg='Đáp án đúng không hợp lệ.'; toast(msg, 'error'); console.warn(msg); alert(msg); return false; }
+    return true;
+  };
+
+  const saveQuestion = async () => {
+    if (!validateQuestionForm()) return;
+    setSavingQuestion(true);
+    try {
+      console.log('CreatorLessons.saveQuestion - form:', questionForm);
+      const payload = {
+        skill: 'reading',
+        part: SINGLE_PART,
+        level: Number(questionForm.level) || 500,
+        q_type: 'mcq',
+        content: questionForm.content.trim(),
+        options: questionForm.options.map(o => o.trim()),
+        correct_answer: questionForm.correct_answer,
+        explanation: questionForm.explanation.trim() || 'Giải thích sẽ được cập nhật sau.',
+        passage: null,
+        tags: questionForm.tags.trim() || null,
+        ai_prompt: null,
+        audio_url: null,
+        lesson_id: null,
+      };
+
+      if (questionForm.id) {
+        await questionApi.update(questionForm.id, payload);
+        toast('Cập nhật câu Part 5 thành công.');
+      } else {
+        await questionApi.create(payload);
+        toast('Tạo câu Part 5 thành công.');
+      }
+      setShowQuestionForm(false);
+      await loadPassages();
+    } catch (e) {
+      console.error('CreatorLessons.saveQuestion error', e);
+      alert('Lỗi khi lưu: ' + (e?.message || JSON.stringify(e)));
+      toast(e.message, 'error');
+    } finally {
+      setSavingQuestion(false);
+    }
+  };
+
+  const deleteQuestion = async (id) => {
+    if (!window.confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
+    try {
+      await questionApi.delete(id);
+      toast('Đã xóa câu hỏi.');
+      loadPassages();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
   return (
     <div className="fade-up creator-hub">
       <div className="page-header creator-header">
         <div>
-          <h1 className="page-title">Creator Content Hub</h1>
-          <p className="page-sub">Quản lý Part 6/7 và ngân hàng flashcard theo chuẩn Penwin học thuật</p>
-        </div>
+                <h1 className="page-title">Creator Content Hub</h1>
+                <p className="page-sub">Quản lý Part 5/6/7, nhóm passage và ngân hàng flashcard theo chuẩn Penwin học thuật</p>
+              </div>
         <div className="creator-tab-group" role="tablist" aria-label="Creator dashboard tabs">
           <button
             className={`creator-tab-btn ${activeTab === 'passages' ? 'active' : ''}`}
             onClick={() => setActiveTab('passages')}
           >
             Passage Part 6/7
+          </button>
+          <button
+            className={`creator-tab-btn ${activeTab === 'questions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('questions')}
+          >
+            Questions Part 5
           </button>
           <button
             className={`creator-tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
@@ -440,6 +542,52 @@ export default function CreatorLessons() {
                         <div className="creator-actions-inline">
                           <button className="btn btn-ghost btn-sm" onClick={() => openEditFlashcard(item)}>Sửa</button>
                           <button className="btn btn-danger btn-sm" onClick={() => deleteFlashcard(item.id)}>Xóa</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'questions' && (
+        <div className="creator-panel card">
+          <div className="creator-panel-header">
+            <div>
+              <h2>Questions - Part 5 (Single MCQ)</h2>
+              <p>Tạo và quản lý câu hỏi Part 5 (MCQ đơn, không kèm passage).</p>
+            </div>
+            <button className="btn btn-primary" onClick={openNewQuestion}>+ Tạo câu Part 5</button>
+          </div>
+
+          {loadingPassages ? (
+            <div className="loading-page" style={{ height: 180 }}><div className="spinner spinner-lg" /></div>
+          ) : (
+            <div className="data-table-wrap creator-table">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Question</th>
+                    <th>Level</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rawQuestions.filter(q => Number(q.part) === SINGLE_PART).length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="creator-empty-row">Chưa có câu Part 5 nào. Hãy tạo câu mới.</td>
+                    </tr>
+                  ) : rawQuestions.filter(q => Number(q.part) === SINGLE_PART).map(q => (
+                    <tr key={q.id}>
+                      <td className="td-content">{(q.content || '').slice(0, 140)}{(q.content||'').length>140?'...':''}</td>
+                      <td><span className="badge badge-purple">{q.level}</span></td>
+                      <td>
+                        <div className="creator-actions-inline">
+                          <button className="btn btn-ghost btn-sm" onClick={() => openEditQuestion(q)}>Sửa</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => deleteQuestion(q.id)}>Xóa</button>
                         </div>
                       </td>
                     </tr>
@@ -662,6 +810,65 @@ export default function CreatorLessons() {
               <button className="btn btn-ghost" onClick={() => setShowFlashcardForm(false)}>Hủy</button>
               <button className="btn btn-primary" onClick={saveFlashcard} disabled={savingFlashcard}>
                 {savingFlashcard ? <><span className="spinner" />Đang lưu...</> : 'Lưu flashcard'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showQuestionForm && (
+        <div className="modal-overlay" onClick={() => setShowQuestionForm(false)}>
+          <div className="modal-box creator-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{questionForm.id ? 'Cập nhật câu Part 5' : 'Tạo câu Part 5 mới'}</h3>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowQuestionForm(false)}>x</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group" style={{ marginBottom: 10 }}>
+                <label className="form-label">Nội dung câu hỏi</label>
+                <textarea className="form-textarea" rows={3}
+                  value={questionForm.content}
+                  onChange={(e) => setQuestionForm(prev => ({ ...prev, content: e.target.value }))}
+                />
+              </div>
+
+              <div className="grid-2" style={{ gap: 10 }}>
+                {questionForm.options.map((opt, idx) => (
+                  <div className="form-group" key={idx}>
+                    <label className="form-label">Lựa chọn {ANSWER_KEYS[idx]}</label>
+                    <input className="form-input" value={opt} onChange={(e) => updateQuestionOption(idx, e.target.value)} />
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid-2" style={{ gap: 10, marginTop: 10 }}>
+                <div className="form-group">
+                  <label className="form-label">Đáp án đúng</label>
+                  <select className="form-select" value={questionForm.correct_answer} onChange={(e) => setQuestionForm(prev=>({...prev, correct_answer: e.target.value}))}>
+                    {ANSWER_KEYS.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Mức điểm TOEIC</label>
+                  <select className="form-select" value={questionForm.level} onChange={(e) => setQuestionForm(prev=>({...prev, level: Number(e.target.value)}))}>
+                    {SCORE_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 10 }}>
+                <label className="form-label">Giải thích</label>
+                <input className="form-input" value={questionForm.explanation} onChange={(e) => setQuestionForm(prev=>({...prev, explanation: e.target.value}))} />
+              </div>
+
+              <div className="form-group" style={{ marginTop: 10 }}>
+                <label className="form-label">Tags (optional)</label>
+                <input className="form-input" value={questionForm.tags} onChange={(e) => setQuestionForm(prev=>({...prev, tags: e.target.value}))} placeholder="grammar, vocabulary" />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setShowQuestionForm(false)}>Hủy</button>
+              <button className="btn btn-primary" onClick={saveQuestion} disabled={savingQuestion}>
+                {savingQuestion ? <><span className="spinner"/>Đang lưu...</> : 'Lưu câu hỏi'}
               </button>
             </div>
           </div>
