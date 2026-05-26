@@ -212,6 +212,9 @@ npm start
 ### Cách chạy demo nhanh
 
 ```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```powershell
 powershell -ExecutionPolicy Bypass -File .\run_pengwin.ps1
 ```
 
