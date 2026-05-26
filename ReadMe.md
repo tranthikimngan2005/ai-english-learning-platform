@@ -226,7 +226,7 @@ python -m venv venv
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_pengwin.ps1
 ```
-**Tương thích với python 3.13.x trở xuống
+***Tương thích với python 3.13.x trở xuống***
 ### Màn hình truy cập sau khi chạy
 
 * Frontend: http://localhost:3000
