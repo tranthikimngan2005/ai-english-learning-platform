@@ -1,0 +1,29 @@
+name: Deploy Databricks Job
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Databricks job
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          set -e
+          JOB_SPEC_FILE=docs/databricks/job_spec.json
+          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+            echo "Missing Databricks secrets; set DATABRICKS_HOST and DATABRICKS_TOKEN in repo secrets.";
+            exit 1;
+          fi
+          echo "Creating/updating Databricks job from $JOB_SPEC_FILE"
+          response=$(curl -s -X POST "$DATABRICKS_HOST/api/2.1/jobs/create" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary @$JOB_SPEC_FILE)
+          echo "$response"

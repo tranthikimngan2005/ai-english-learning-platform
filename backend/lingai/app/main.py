@@ -2,15 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from app.core.database import Base, engine
+from app.core.database import Base
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.routers import auth, users, lessons, questions, review, chat, admin, flashcards
-from app.services.recommendation import get_recommendations
+from app.services.analytics_service import get_recommendations
 
-# Create all tables on startup
-Base.metadata.create_all(bind=engine)
+# Database tables should be created by migrations or test fixtures; avoid
+# creating tables at import time which interferes with test overrides.
 
 app = FastAPI(
     title="Pengwin Backend",

@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 BASE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_DB_URL = f"sqlite:///{(BASE_DIR / 'lingai.db').as_posix()}"
+DEFAULT_ANALYTICS_BATCH_SNAPSHOT_PATH = BASE_DIR.parent.parent / "data" / "raw" / "recommendations_snapshot.json"
 
 class Settings(BaseSettings):
     APP_NAME: str = "Pengwin"
@@ -15,10 +16,12 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://api.groq.com/openai/v1"
     LLM_MODEL: str = "llama-3.1-8b-instant"
     LLM_TIMEOUT_SECONDS: int = 30
+    ANALYTICS_BATCH_SNAPSHOT_PATH: str = str(DEFAULT_ANALYTICS_BATCH_SNAPSHOT_PATH)
 
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
 settings = Settings()

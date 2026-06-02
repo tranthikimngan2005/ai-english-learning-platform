@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { questionApi } from '../api/client';
+import { chatApi, questionApi } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { IMG_VOCAB, IMG_PROGRESS, IMG_HERO } from '../assets/images';
 import QuestionCard from '../components/QuestionCard';
@@ -15,6 +15,19 @@ const TOEIC_PARTS = [
 
 const normalizeAnswer = (v) => String(v ?? '').trim().toLowerCase();
 const letterToIndex = { A: 0, B: 1, C: 2, D: 3 };
+const PRACTICE_AI_STATIC_PROMPTS = [
+  'giải thích câu này ngắn gọn',
+  'dịch sang tiếng Việt',
+  'chỉ ra từ vựng khó',
+];
+
+const PRACTICE_AI_SYSTEM_PROMPT = `You are Pengwin AI inside a TOEIC practice screen.
+Help the learner understand the current question, passage, or vocabulary.
+If the user asks about a word or phrase, give the Vietnamese meaning first, then a short explanation and one simple example.
+If the user asks to translate, translate clearly and concisely.
+If the user asks for an explanation, keep the answer short, practical, and related to the current exercise.
+If the user asks in Vietnamese, answer mainly in Vietnamese.
+Do not drift into unrelated topics.`;
 
 function resolveCorrectAnswer(question, rawAnswer) {
   const ans = String(rawAnswer ?? '').trim();
@@ -78,6 +91,67 @@ function buildPassageGroups(items) {
     .sort((a, b) => (a.questions[0]?._questionNo || 0) - (b.questions[0]?._questionNo || 0));
 }
 
+function compactText(text, maxLength = 240) {
+  const normalized = String(text ?? '').replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength).trim()}...`;
+}
+
+function buildQuestionFocusPrompt(question) {
+  const rawText = compactText(question?.question_text || question?.content || '', 120);
+  if (!rawText) return 'từ/câu này nghĩa là gì?';
+
+  const cleaned = rawText.replace(/[\s.?!,:;"'`~()[\]{}<>-]+/g, ' ').trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+
+  if (words.length <= 6) {
+    return `${cleaned} nghĩa là gì?`;
+  }
+
+  const firstChunk = words.slice(0, 6).join(' ');
+  return `giải thích câu này: ${firstChunk}${words.length > 6 ? '...' : ''}`;
+}
+
+function buildPracticeAiContext({ isGroupMode, currentGroup, currentGroupQuestions, singleQuestion, answer }) {
+  const pieces = [];
+
+  if (isGroupMode) {
+    if (currentGroup?.passage) {
+      pieces.push(`Passage: ${compactText(currentGroup.passage, 420)}`);
+    }
+
+    if (currentGroupQuestions.length) {
+      const questionSummary = currentGroupQuestions
+        .map((question) => {
+          const questionText = compactText(question?.question_text || question?.content || '', 180);
+          const optionText = Array.isArray(question?.options) && question.options.length
+            ? ` | Options: ${question.options.map((option) => compactText(option, 40)).join(' | ')}`
+            : '';
+          return `Q${question._questionNo}: ${questionText}${optionText}`;
+        })
+        .join('\n');
+      pieces.push(`Questions:\n${questionSummary}`);
+    }
+  } else if (singleQuestion) {
+    const questionText = compactText(singleQuestion.question_text || singleQuestion.content || '', 220);
+    pieces.push(`Question: ${questionText}`);
+
+    if (singleQuestion.passage) {
+      pieces.push(`Passage: ${compactText(singleQuestion.passage, 420)}`);
+    }
+
+    if (Array.isArray(singleQuestion.options) && singleQuestion.options.length) {
+      pieces.push(`Options: ${singleQuestion.options.map((option) => compactText(option, 60)).join(' | ')}`);
+    }
+  }
+
+  if (answer?.trim()) {
+    pieces.push(`Student draft/answer: ${compactText(answer, 160)}`);
+  }
+
+  return pieces.join('\n');
+}
+
 export default function Practice() {
   const [params] = useSearchParams();
   const toast = useToast();
@@ -97,6 +171,9 @@ export default function Practice() {
   const [groupAnswers, setGroupAnswers] = useState({});
   const [groupResults, setGroupResults] = useState({});
   const [checkedGroupKeys, setCheckedGroupKeys] = useState({});
+  const [aiHelpMessages, setAiHelpMessages] = useState([]);
+  const [aiHelpInput, setAiHelpInput] = useState('');
+  const [aiHelpLoading, setAiHelpLoading] = useState(false);
 
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [loading, setLoading] = useState(false);
@@ -104,6 +181,7 @@ export default function Practice() {
 
   const questionListRef = useRef(null);
   const questionNodeRefs = useRef({});
+  const aiHelpBottomRef = useRef(null);
 
   const markPracticeFinished = useCallback(() => {
     const stamp = String(Date.now());
@@ -124,6 +202,8 @@ export default function Practice() {
   const currentGroup = groups[groupIdx] || null;
   const currentGroupQuestions = currentGroup?.questions || [];
   const activeMetaQuestion = isGroupMode ? currentGroupQuestions[0] : questions[idx];
+  const currentSingleQuestion = questions[idx] || null;
+  const activeAiQuestion = isGroupMode ? currentGroupQuestions[0] || null : currentSingleQuestion;
 
   const allGroupAnswered = useMemo(() => {
     if (!isGroupMode || !currentGroupQuestions.length) return false;
@@ -131,6 +211,22 @@ export default function Practice() {
   }, [isGroupMode, currentGroupQuestions, groupAnswers]);
 
   const currentGroupChecked = Boolean(currentGroup && checkedGroupKeys[currentGroup.key]);
+
+  useEffect(() => {
+    if (step !== 'playing') {
+      setAiHelpMessages([]);
+      setAiHelpInput('');
+      return;
+    }
+
+    setAiHelpMessages([]);
+    setAiHelpInput('');
+  }, [step, idx, groupIdx, readingPart]);
+
+  useEffect(() => {
+    if (!aiHelpMessages.length && !aiHelpLoading) return;
+    aiHelpBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [aiHelpMessages, aiHelpLoading]);
 
   const groupCompletion = useMemo(() => {
     if (!isGroupMode || !groups.length) return { current: 0, total: 0 };
@@ -339,6 +435,44 @@ export default function Practice() {
     container.scrollTo({ top: offset, behavior: 'smooth' });
   };
 
+  const sendPracticeAiMessage = useCallback(
+    async (rawInput) => {
+      const text = String(rawInput ?? '').trim();
+      if (!text || aiHelpLoading) return;
+
+      const context = buildPracticeAiContext({
+        isGroupMode,
+        currentGroup,
+        currentGroupQuestions,
+        singleQuestion: currentSingleQuestion,
+        answer,
+      });
+      const userPrompt = context
+        ? `Please answer based on the practice context below.\n\n${context}\n\nStudent question: ${text}`
+        : text;
+
+      setAiHelpLoading(true);
+      setAiHelpInput('');
+
+      try {
+        const savedUserMessage = await chatApi.send(text);
+        setAiHelpMessages((prev) => [...prev, savedUserMessage]);
+
+        const savedAiMessage = await chatApi.generate(userPrompt, PRACTICE_AI_SYSTEM_PROMPT);
+        setAiHelpMessages((prev) => [...prev, savedAiMessage]);
+      } catch (e) {
+        toast(e.message || 'Could not ask AI right now.', 'error');
+      } finally {
+        setAiHelpLoading(false);
+      }
+    },
+    [aiHelpLoading, answer, currentGroup, currentGroupQuestions, currentSingleQuestion, isGroupMode, toast]
+  );
+
+  const handleAiHelpSubmit = async () => {
+    await sendPracticeAiMessage(aiHelpInput);
+  };
+
   const renderPassageWithInteractiveBlanks = (passageText) => {
     const text = String(passageText || '');
     if (!text) return null;
@@ -389,6 +523,72 @@ export default function Practice() {
 
     return <>{nodes}</>;
   };
+
+  const renderAiHelpPanel = () => (
+    <div className="practice-ai-assist">
+      <div className="practice-ai-head">
+        <div>
+          <div className="practice-ai-title">AI hỏi nhanh ngay trong bài</div>
+          <div className="practice-ai-sub">
+            Hỏi nghĩa từ, dịch câu, hoặc nhờ giải thích ngữ cảnh mà không cần rời khỏi Practice.
+          </div>
+        </div>
+        {activeAiQuestion && (
+          <div className="practice-ai-context">
+            {isGroupMode ? `Passage ${groupIdx + 1}` : `Question ${idx + 1}`}
+          </div>
+        )}
+      </div>
+
+      <div className="practice-ai-chips">
+        {[buildQuestionFocusPrompt(activeAiQuestion), ...PRACTICE_AI_STATIC_PROMPTS].map((prompt) => (
+          <button key={prompt} type="button" className="practice-ai-chip" onClick={() => sendPracticeAiMessage(prompt)} disabled={aiHelpLoading}>
+            {prompt}
+          </button>
+        ))}
+      </div>
+
+      <div className="practice-ai-thread">
+        {aiHelpMessages.length === 0 ? (
+          <div className="practice-ai-empty">
+            Ví dụ: hỏi “giải thích câu này ngắn gọn”.
+          </div>
+        ) : (
+          aiHelpMessages.map((message) => (
+            <div key={message.id} className={`practice-ai-msg ${message.role === 'user' ? 'user' : 'ai'}`}>
+              <div className="practice-ai-bubble">{message.content}</div>
+            </div>
+          ))
+        )}
+        {aiHelpLoading && (
+          <div className="practice-ai-msg ai">
+            <div className="practice-ai-bubble">Đang trả lời...</div>
+          </div>
+        )}
+        <div ref={aiHelpBottomRef} />
+      </div>
+
+      <div className="practice-ai-input-row">
+        <textarea
+          className="practice-ai-input"
+          placeholder="Nhập câu hỏi cho AI về từ/câu bạn đang làm..."
+          value={aiHelpInput}
+          onChange={(e) => setAiHelpInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleAiHelpSubmit();
+            }
+          }}
+          disabled={aiHelpLoading}
+          rows={2}
+        />
+        <button className="btn btn-primary practice-ai-send" onClick={handleAiHelpSubmit} disabled={aiHelpLoading || !aiHelpInput.trim()}>
+          {aiHelpLoading ? <span className="spinner" /> : 'Ask AI'}
+        </button>
+      </div>
+    </div>
+  );
 
   if (step === 'config') {
     return (
@@ -676,6 +876,8 @@ export default function Practice() {
               </div>
             </div>
           )}
+
+          {renderAiHelpPanel()}
         </div>
       )}
 

@@ -5,6 +5,9 @@ from datetime import timedelta
 import pytest
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
+import os
+import tempfile
+import uuid
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -23,20 +26,11 @@ from app.models.user import (
 )
 
 
-TEST_DB_URL = "sqlite:///./test_full_system.db"
+_tmpfile = os.path.join(tempfile.gettempdir(), f"test_full_system_{uuid.uuid4().hex}.db")
+TEST_DB_URL = f"sqlite:///{_tmpfile}"
 engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
 TestSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-
-def override_get_db():
-    db = TestSession()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
 
 
 def _auth_headers(token: str) -> dict[str, str]:
@@ -94,9 +88,20 @@ def _seed_core_data() -> dict[str, int]:
         db.close()
 
 
+def override_get_db():
+    db = TestSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @pytest.fixture
 def test_client():
-    return TestClient(app)
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.pop(get_db, None)
 
 
 @pytest.fixture(autouse=True)

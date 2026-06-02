@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, ChatMessage
 from app.schemas.schemas import ChatMessageIn, ChatMessageOut
+from app.services.chat_service import generate_and_save_ai_response, save_ai_message as save_ai_message_service, save_user_message as save_user_message_service
 
 router = APIRouter(prefix="/api/chat", tags=["AI Chat"])
 
@@ -372,11 +373,7 @@ def send_message(
     the /chat/ai-response endpoint or via a real LLM integration.
     This endpoint handles persistence.
     """
-    msg = ChatMessage(user_id=current_user.id, role="user", content=payload.content)
-    db.add(msg)
-    db.commit()
-    db.refresh(msg)
-    return msg
+    return save_user_message_service(db, current_user.id, payload.content)
 
 
 @router.post("/ai-response", response_model=ChatMessageOut)
@@ -386,11 +383,7 @@ def save_ai_response(
     db: Session = Depends(get_db),
 ):
     """Save the AI assistant's response to the DB."""
-    msg = ChatMessage(user_id=current_user.id, role="assistant", content=payload.content)
-    db.add(msg)
-    db.commit()
-    db.refresh(msg)
-    return msg
+    return save_ai_message_service(db, current_user.id, payload.content)
 
 
 @router.post("/generate", response_model=ChatMessageOut)
@@ -399,91 +392,7 @@ def generate_ai_response(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Generate and save AI response using prompt + history + configured LLM."""
-    custom_prompt = (payload.system_prompt or "").strip()
-    system_prompt = custom_prompt if custom_prompt else SYSTEM_PROMPT
-
-    history = _history_messages(db, current_user.id)
-    ai_text, llm_error = _call_llm(payload.content, system_prompt, history)
-
-    if not ai_text:
-        provider = (settings.LLM_PROVIDER or "groq").strip().lower()
-        if provider == "gemini":
-            key = (settings.LLM_API_KEY or "").strip()
-            if not key or key.upper().startswith("YOUR_REAL_API_KEY"):
-                ai_text = (
-                    "Gemini chưa được cấu hình API key thật. "
-                    "Bạn mở backend/lingai/.env và thay LLM_API_KEY=YOUR_REAL_API_KEY bằng key Gemini thật, rồi restart backend."
-                )
-            elif llm_error == "quota_exceeded":
-                ai_text = (
-                    "Gemini báo hết quota (RESOURCE_EXHAUSTED / 429). "
-                    "Bạn cần bật billing hoặc chờ reset quota rồi thử lại."
-                )
-            elif llm_error == "invalid_key_or_permission":
-                ai_text = (
-                    "Gemini từ chối xác thực (401/403). "
-                    "Hãy kiểm tra lại API key, project và quyền truy cập Gemini API."
-                )
-            elif llm_error == "model_or_endpoint_not_found":
-                ai_text = (
-                    "Model hoặc endpoint Gemini không tồn tại (404). "
-                    "Hãy kiểm tra LLM_BASE_URL và LLM_MODEL trong backend/lingai/.env."
-                )
-            else:
-                ai_text = (
-                    "Gemini đang bật nhưng gọi API bị lỗi. "
-                    "Hãy kiểm tra key còn hiệu lực, billing/quota, model gemini-2.0-flash và kết nối mạng máy chủ."
-                )
-        elif provider == "openai":
-            key = (settings.LLM_API_KEY or "").strip()
-            if not key or key.upper().startswith("YOUR_REAL_API_KEY"):
-                ai_text = (
-                    "OpenAI chưa được cấu hình API key thật. "
-                    "Bạn mở backend/lingai/.env và cập nhật LLM_API_KEY, rồi restart backend."
-                )
-            else:
-                ai_text = (
-                    "OpenAI đang bật nhưng gọi API bị lỗi. "
-                    "Hãy kiểm tra key, model, quota và kết nối mạng máy chủ."
-                )
-        elif provider == "groq":
-            key = (settings.LLM_API_KEY or "").strip()
-            if not key or key.upper().startswith("YOUR_REAL_API_KEY"):
-                ai_text = (
-                    "Groq chưa được cấu hình API key thật. "
-                    "Bạn mở backend/lingai/.env, đặt LLM_PROVIDER=groq và dán Groq key vào LLM_API_KEY, rồi restart backend."
-                )
-            elif llm_error == "quota_exceeded":
-                ai_text = (
-                    "Groq báo hết quota/tốc độ tạm thời (429). "
-                    "Bạn chờ một lúc rồi thử lại, hoặc đổi model nhẹ hơn trong LLM_MODEL."
-                )
-            elif llm_error == "invalid_key_or_permission":
-                ai_text = (
-                    "Groq từ chối xác thực (401/403). "
-                    "Hãy kiểm tra lại Groq API key và quyền truy cập model."
-                )
-            elif llm_error == "model_or_endpoint_not_found":
-                ai_text = (
-                    "Model hoặc endpoint Groq không tồn tại (404). "
-                    "Hãy kiểm tra LLM_BASE_URL và LLM_MODEL trong backend/lingai/.env."
-                )
-            else:
-                ai_text = (
-                    "Groq đang bật nhưng gọi API bị lỗi. "
-                    "Hãy kiểm tra key, model, hạn mức miễn phí và kết nối mạng máy chủ."
-                )
-        else:
-            ai_text = (
-                "LLM_PROVIDER chưa hợp lệ. "
-                "Hãy đặt LLM_PROVIDER=groq hoặc LLM_PROVIDER=gemini hoặc LLM_PROVIDER=openai trong backend/lingai/.env."
-            )
-
-    msg = ChatMessage(user_id=current_user.id, role="assistant", content=ai_text)
-    db.add(msg)
-    db.commit()
-    db.refresh(msg)
+    msg, _ = generate_and_save_ai_response(db, current_user.id, payload.content, payload.system_prompt)
     return msg
 
 

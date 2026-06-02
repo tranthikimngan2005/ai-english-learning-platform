@@ -199,7 +199,7 @@ npm start
 
 ### Demo link
 
-* https://github.com/tranthikimngan2005/ai-english-learning-platform
+* 
 
 ### Tài khoản dùng để demo
 
@@ -219,5 +219,51 @@ powershell -ExecutionPolicy Bypass -File .\run_pengwin.ps1
 
 * Frontend: http://localhost:3000
 * Backend API docs: http://localhost:8000/docs
+
+## LỆNH NHANH (DÙNG HẰNG NGÀY)
+
+1) Kích hoạt virtualenv (mở PowerShell ở thư mục gốc repo):
+
+```powershell
+& .venv\Scripts\Activate.ps1
+```
+
+2) Chạy tất cả (script tự động seed + khởi backend + frontend):
+
+```powershell
+.\run_pengwin.ps1
+# Tùy chọn: .\run_pengwin.ps1 -SkipSeed -SkipNpmInstall
+```
+
+3) Chạy thủ công từng phần (nếu không dùng script):
+
+Backend (dev):
+```powershell
+Set-Location backend\lingai
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Frontend (dev):
+```powershell
+Set-Location frontend
+npm install   # lần đầu hoặc khi thay đổi package.json
+npm start
+```
+
+4) Kiểm tra nhanh (smoke-test):
+
+```powershell
+Set-Location backend\lingai
+python scripts\smoke_start.py
+```
+
+5) Chạy test suite:
+
+```powershell
+Set-Location backend\lingai
+python -m pytest -q
+```
+
+---
 
 ---

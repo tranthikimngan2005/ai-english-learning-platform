@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pengwin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pengwinpass}
+      POSTGRES_DB: ${POSTGRES_DB:-pengwin}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - pengwin_net
+
+  backend:
+    build:
+      context: ./backend/lingai
+      dockerfile: Dockerfile
+    env_file:
+      - ../../.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./backend/lingai:/app:rw
+      - ./data:/data:rw
+    networks:
+      - pengwin_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ../../.env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app:rw
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - pengwin_net
+
+volumes:
+  db_data:
+
+networks:
+  pengwin_net:
+    driver: bridge
