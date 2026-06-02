@@ -175,6 +175,14 @@ Sau khi script chạy xong, truy cập:
 | Creator | creator@pengwin.com | creator123 |
 | Admin | admin@pengwin.com | admin123 |
 
+### Yêu cầu hệ thống
+
+* Python 3.11 hoặc 3.12
+* Node.js 18 hoặc mới hơn
+* npm 9 hoặc mới hơn
+* Docker và Docker Compose (nếu chạy bằng docker)
+* Windows PowerShell hoặc terminal tương thích
+
 ### Cài đặt thủ công nếu cần
 
 1. Clone repository:
