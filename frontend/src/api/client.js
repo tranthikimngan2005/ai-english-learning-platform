@@ -1,7 +1,5 @@
-﻿// Nếu đang dùng axios, hãy sửa đoạn baseURL thành:
-const client = axios.create({
-    baseURL: "https://ai-english-learning-platform-icki.onrender.com"
-});
+﻿// Định nghĩa link Backend Render công khai
+const BASE = "https://ai-english-learning-platform-icki.onrender.com";
 const REQUEST_TIMEOUT_MS = 8000;
 
 function getToken() {
@@ -39,7 +37,6 @@ async function request(method, path, body, opts = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) {
-      // Drop stale credentials so protected views can redirect cleanly.
       localStorage.removeItem('pengwin_token');
     }
     const msg = data.detail || data.message || `HTTP ${res.status}`;
@@ -49,11 +46,11 @@ async function request(method, path, body, opts = {}) {
 }
 
 export const api = {
-  get:    (path)         => request('GET', path),
-  post:   (path, body)   => request('POST', path, body),
-  put:    (path, body)   => request('PUT', path, body),
-  patch:  (path, body)   => request('PATCH', path, body),
-  delete: (path)         => request('DELETE', path),
+  get:     (path)         => request('GET', path),
+  post:    (path, body)   => request('POST', path, body),
+  put:     (path, body)   => request('PUT', path, body),
+  patch:   (path, body)   => request('PATCH', path, body),
+  delete:  (path)         => request('DELETE', path),
   postForm: (path, formData) => request('POST', path, formData, { formData: true }),
 };
 
@@ -129,8 +126,8 @@ export const flashcardApi = {
     return api.get(`/api/flashcards/manage${q ? '?' + q : ''}`);
   },
   create: (data) => api.post('/api/flashcards/manage', data),
-  update: (id, data) => api.put(`/api/flashcards/manage/${id}`, data),
-  delete: (id) => api.delete(`/api/flashcards/manage/${id}`),
+  update: (id, data) => api.put('/api/flashcards/manage/${id}', data),
+  delete: (id) => api.delete('/api/flashcards/manage/${id}'),
 };
 
 // Chat
@@ -154,4 +151,3 @@ export const adminApi = {
   pendingLessons:  ()           => api.get('/api/admin/content/pending/lessons'),
   moderateL:       (id, status) => api.patch(`/api/lessons/${id}/moderate`, { status }),
 };
-
