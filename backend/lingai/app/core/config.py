@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
@@ -9,7 +10,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-this-in-production-use-long-random-string"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
-    DATABASE_URL: str = DEFAULT_DB_URL
+    DATABASE_URL: str = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
+    FRONTEND_ORIGINS: str = os.getenv("FRONTEND_ORIGINS", "http://localhost:3000")
     LLM_PROVIDER: str = "groq"  # groq | gemini | openai
     LLM_API_KEY: Optional[str] = None
     LLM_BASE_URL: str = "https://api.groq.com/openai/v1"

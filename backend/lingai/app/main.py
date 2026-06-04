@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -18,9 +19,17 @@ app = FastAPI(
     version="1.0.0",
 )
 
+allowed_origins = [
+    origin.strip()
+    for origin in settings.FRONTEND_ORIGINS.split(',')
+    if origin.strip()
+]
+if not allowed_origins:
+    allowed_origins = ["http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten in production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
