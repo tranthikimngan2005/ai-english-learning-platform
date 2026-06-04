@@ -1,4 +1,7 @@
-﻿const BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+﻿// Nếu đang dùng axios, hãy sửa đoạn baseURL thành:
+const client = axios.create({
+    baseURL: "https://ai-english-learning-platform-icki.onrender.com"
+});
 const REQUEST_TIMEOUT_MS = 8000;
 
 function getToken() {
