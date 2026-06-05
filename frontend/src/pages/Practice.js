@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { questionApi } from '../api/client';
-import IMG_GRAMMAR_ICON from '../assets/iconapp/gammaravt.png'; // 🌟 Đã sửa đường dẫn hợp lệ bên trong thư mục src
-import IMG_TESTTIME_ICON from '../assets/iconapp/testtime.png';
-import IMG_VOCAB_ICON from '../assets/iconapp/vocabavt.png';
-import IMG_PENWIN_ICON from '../assets/iconapp/avt.png';
-import IMG_AI_ICON from '../assets/iconapp/AItutoravt.png';
-import IMG_CORRECT_ICON from '../assets/iconapp/usercorrect.png';
-import IMG_INCORRECT_ICON from '../assets/iconapp/userincorrect.png';
 import './Practice.css';
+
+// 🌟 Đã chuyển đổi toàn bộ icon sang dạng chuỗi tĩnh để triệt tiêu lỗi "Module not found" của Vercel
+const IMG_GRAMMAR_ICON = "/iconapp/gammaravt.png";
+const IMG_TESTTIME_ICON = "/iconapp/testtime.png";
+const IMG_VOCAB_ICON = "/iconapp/vocabavt.png";
+const IMG_PENWIN_ICON = "/iconapp/avt.png";
+const IMG_AI_ICON = "/iconapp/AItutoravt.png";
+const IMG_CORRECT_ICON = "/iconapp/usercorrect.png";
+const IMG_INCORRECT_ICON = "/iconapp/userincorrect.png";
 
 export default function Practice() {
     const [selectedPart, setSelectedPart] = useState(5);
@@ -111,7 +113,7 @@ export default function Practice() {
         : questions;
     const currentQuestion = activeQuestions[currentQuestionIndex];
 
-    // ── SETUP SCREEN NGUYÊN BẢN ──
+    // ── SETUP SCREEN ──
     if (!isStarted) {
         return (
             <div className="practice-page fade-up">
@@ -164,7 +166,7 @@ export default function Practice() {
         );
     }
 
-    // ── PRACTICE SCREEN NGUYÊN BẢN ──
+    // ── PRACTICE SCREEN ──
     return (
         <div className="practice-page practice-screen-layout fade-up">
 
