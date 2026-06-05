@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { questionApi } from '../api/client'; // 🌟 Sửa đúng import ngoặc nhọn để không lỗi build Vercel
+import IMG_GRAMMAR_ICON from '../assets/iconapp/gammaravt.png';
+import IMG_TESTTIME_ICON from '../assets/iconapp/testtime.png';
+import IMG_VOCAB_ICON from '../assets/iconapp/vocabavt.png';
+import IMG_PENWIN_ICON from '../assets/iconapp/avt.png';
 import './Practice.css';
 
 export default function Practice() {
@@ -16,6 +20,7 @@ export default function Practice() {
     const [checkedQuestions, setCheckedQuestions] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
     // State AI Assist
     const [aiMessages, setAiMessages] = useState([]);
@@ -52,6 +57,7 @@ export default function Practice() {
             setAiMessages([]);
             setUserAnswers({});
             setCheckedQuestions({});
+            setCurrentQuestionIndex(0);
         } catch (err) {
             console.error(err);
             setError('Failed to fetch questions. Please try again!');
@@ -111,17 +117,17 @@ export default function Practice() {
                     <label className="form-label">TOEIC Reading Part</label>
                     <div className="part-picker">
                         <button className={`part-pick-btn ${selectedPart === 5 ? 'active' : ''}`} onClick={() => setSelectedPart(5)}>
-                            <img src="/assets/icons/part5.png" alt="Part 5" onError={(e) => e.target.src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png"} />
+                            <img src={IMG_GRAMMAR_ICON} alt="Part 5" />
                             <span>Part 5</span>
                             <span className="part-pick-sub">Incomplete Sentences</span>
                         </button>
                         <button className={`part-pick-btn ${selectedPart === 6 ? 'active' : ''}`} onClick={() => setSelectedPart(6)}>
-                            <img src="/assets/icons/part6.png" alt="Part 6" onError={(e) => e.target.src="https://cdn-icons-png.flaticon.com/512/3593/3593497.png"} />
+                            <img src={IMG_TESTTIME_ICON} alt="Part 6" />
                             <span>Part 6</span>
                             <span className="part-pick-sub">Text Completion</span>
                         </button>
                         <button className={`part-pick-btn ${selectedPart === 7 ? 'active' : ''}`} onClick={() => setSelectedPart(7)}>
-                            <img src="/assets/icons/part7.png" alt="Part 7" onError={(e) => e.target.src="https://cdn-icons-png.flaticon.com/512/2202/2202111.png"} />
+                            <img src={IMG_VOCAB_ICON} alt="Part 7" />
                             <span>Part 7</span>
                             <span className="part-pick-sub">Reading Comprehension</span>
                         </button>
@@ -152,6 +158,7 @@ export default function Practice() {
     }
 
     const activeQuestions = passages.length > 0 ? (passages[currentPassageIndex]?.questions || []) : questions;
+    const currentQuestion = activeQuestions[currentQuestionIndex];
 
     // MÀN HÌNH LÀM BÀI - GIỮ NGUYÊN HOÀN TOÀN CARD, ICON VÀ MÀU SẮC BAN ĐẦU CỦA BẠN
     return (
@@ -171,7 +178,7 @@ export default function Practice() {
                 )}
 
                 <div className="practice-questions-container">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png" alt="Penwin Logo" className="practice-main-logo" style={{ width: '120px', height: '120px', display: 'block', margin: '0 auto 16px auto' }} />
+                    <img src={IMG_PENWIN_ICON} alt="Penwin Logo" className="practice-main-logo" />
                     
                     <div className="questions-grid-header">Questions in this passage</div>
                     <div className="questions-grid-row">
@@ -181,29 +188,28 @@ export default function Practice() {
                             </span>
                         ))}
                     </div>
-                    <span className="part6-hint-text">For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.</span>
+                    <div className="step-hint">Hoàn thành câu hiện tại trước khi chuyển sang câu tiếp theo. Làm đúng +10xp.</div>
+                    <div className="practice-question-card">
+                        <div className="question-progress">
+                            <span>Câu {currentQuestionIndex + 1} trên {activeQuestions.length}</span>
+                            <span>{checkedQuestions[currentQuestion?.id] ? 'Hoàn thành' : 'Chưa xong'}</span>
+                        </div>
+                        {currentQuestion ? (
+                            <>
+                                <div className="question-title">Question {currentQuestionIndex + 1}</div>
+                                <div className="question-text">{currentQuestion.content}</div>
 
-                    {/* VÒNG LẶP CÂU HỎI */}
-                    {activeQuestions.map((q, index) => {
-                        const result = checkedQuestions[q.id];
-
-                        return (
-                            <div key={q.id} className="single-question-block">
-                                <div className="question-title">Question {index + 1}</div>
-                                <div className="question-text">{q.content}</div>
-
-                                {/* DANH SÁCH ĐÁP ÁN GỐC - CHỈ THÊM MARGIN-RIGHT CHỐNG DÍNH CHỮ */}
                                 <div className="options-container">
                                     {['A', 'B', 'C', 'D'].map((opt) => {
-                                        const optionText = q[`option_${opt.toLowerCase()}`] || q[opt];
+                                        const optionText = currentQuestion[`option_${opt.toLowerCase()}`] || currentQuestion[opt];
                                         if (!optionText) return null;
 
                                         return (
                                             <button 
                                                 key={opt}
-                                                disabled={!!result}
-                                                className={`option-selection-btn ${userAnswers[q.id] === opt ? 'selected' : ''}`}
-                                                onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                                                disabled={!!checkedQuestions[currentQuestion.id]}
+                                                className={`option-selection-btn ${userAnswers[currentQuestion.id] === opt ? 'selected' : ''}`}
+                                                onClick={() => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: opt }))}
                                             >
                                                 <strong style={{ marginRight: '6px' }}>{opt}</strong> {optionText}
                                             </button>
@@ -212,25 +218,27 @@ export default function Practice() {
                                 </div>
 
                                 <div className="answer-action-row">
-                                    <span className="please-choose-label">Please choose an answer.</span>
-                                    {!result ? (
+                                    <span className="please-choose-label">Chọn đáp án và bấm check để qua câu tiếp theo.</span>
+                                    {!checkedQuestions[currentQuestion.id] ? (
                                         <button 
-                                            onClick={() => handleSubmitAnswer(q.id)}
-                                            disabled={!userAnswers[q.id]}
+                                            onClick={() => handleSubmitAnswer(currentQuestion.id)}
+                                            disabled={!userAnswers[currentQuestion.id]}
                                             className="check-single-answer-btn"
                                         >
                                             Check Answer
                                         </button>
                                     ) : (
-                                        <div className={`answer-feedback-box ${result.is_correct ? 'correct' : 'incorrect'}`}>
-                                            <span>{result.is_correct ? '✅ Đúng rồi!' : `❌ Sai rồi! Đáp án đúng là: ${result.correct_answer}`}</span>
-                                            {result.explanation && <p className="explanation-paragraph">💡 {result.explanation}</p>}
+                                        <div className={`answer-feedback-box ${checkedQuestions[currentQuestion.id].is_correct ? 'correct' : 'incorrect'}`}>
+                                            <span>{checkedQuestions[currentQuestion.id].is_correct ? '✅ Đúng rồi!' : `❌ Sai rồi! Đáp án đúng là: ${checkedQuestions[currentQuestion.id].correct_answer}`}</span>
+                                            {checkedQuestions[currentQuestion.id].explanation && <p className="explanation-paragraph">💡 {checkedQuestions[currentQuestion.id].explanation}</p>}
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        );
-                    })}
+                            </>
+                        ) : (
+                            <div className="empty-state">Không tìm thấy câu hỏi hiện tại. Vui lòng thử lại.</div>
+                        )}
+                    </div>
 
                     {/* NÚT ĐIỀU HƯỚNG ĐOẠN VĂN GỐC */}
                     {passages.length > 0 && (
@@ -242,7 +250,10 @@ export default function Practice() {
                     )}
 
                     <div className="practice-footer-actions">
-                        <button className="btn btn-primary footer-action-submit-btn">Check Answer</button>
+                        <button className="btn btn-secondary btn-sm" disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex((idx) => Math.max(idx - 1, 0))}>◀ Previous question</button>
+                        <button className="btn btn-primary footer-action-submit-btn" disabled={!currentQuestion || !checkedQuestions[currentQuestion.id] || currentQuestionIndex === activeQuestions.length - 1} onClick={() => setCurrentQuestionIndex((idx) => Math.min(idx + 1, activeQuestions.length - 1))}>
+                            Next question ▶
+                        </button>
                         <button className="btn btn-secondary footer-action-stop-btn" onClick={() => setIsStarted(false)}>Stop</button>
                     </div>
                 </div>
