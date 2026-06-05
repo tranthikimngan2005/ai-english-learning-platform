@@ -4,6 +4,7 @@
 Run:
   python seed_flashcards.py
 """
+# Thêm dòng này ở đầu hàm seed (sau khi có session db) để dọn sạch bảng cũ:
 
 from __future__ import annotations
 
@@ -113,6 +114,7 @@ def _reset_flashcard_data(db: Session) -> tuple[int, int]:
 
 
 def seed_flashcards(*, reset: bool = False) -> tuple[int, int, int, int, int]:
+    
     flash_path = _flashcards_file()
     if not flash_path.exists():
         raise FileNotFoundError(f"Flashcards file not found: {flash_path}")

@@ -1,5 +1,6 @@
 ﻿// Định nghĩa link Backend Render công khai
 const BASE = "https://ai-english-learning-platform-icki.onrender.com";
+// const BASE = "http://localhost:8000"; // Hoặc port Backend local của bạn (8000 hoặc 5000)
 const REQUEST_TIMEOUT_MS = 8000;
 
 function getToken() {
