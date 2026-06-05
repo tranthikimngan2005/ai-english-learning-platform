@@ -1,915 +1,386 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { chatApi, questionApi } from '../api/client';
-import { useToast } from '../context/ToastContext';
-import { IMG_VOCAB, IMG_PROGRESS, IMG_HERO } from '../assets/images';
-import QuestionCard from '../components/QuestionCard';
+import React, { useState, useEffect, useRef } from 'react';
+import client from '../api/client';
 import './Practice.css';
 
-const SKILL_IMGS = { reading: IMG_VOCAB };
-const TOEIC_PARTS = [
-  { value: 5, label: 'Part 5', sub: 'Incomplete Sentences' },
-  { value: 6, label: 'Part 6', sub: 'Text Completion' },
-  { value: 7, label: 'Part 7', sub: 'Reading Comprehension' },
-];
-
-const normalizeAnswer = (v) => String(v ?? '').trim().toLowerCase();
-const letterToIndex = { A: 0, B: 1, C: 2, D: 3 };
-const PRACTICE_AI_STATIC_PROMPTS = [
-  'giải thích câu này ngắn gọn',
-  'dịch sang tiếng Việt',
-  'chỉ ra từ vựng khó',
-];
-
-const PRACTICE_AI_SYSTEM_PROMPT = `You are Pengwin AI inside a TOEIC practice screen.
-Help the learner understand the current question, passage, or vocabulary.
-If the user asks about a word or phrase, give the Vietnamese meaning first, then a short explanation and one simple example.
-If the user asks to translate, translate clearly and concisely.
-If the user asks for an explanation, keep the answer short, practical, and related to the current exercise.
-If the user asks in Vietnamese, answer mainly in Vietnamese.
-Do not drift into unrelated topics.`;
-
-function resolveCorrectAnswer(question, rawAnswer) {
-  const ans = String(rawAnswer ?? '').trim();
-  const idx = letterToIndex[ans.toUpperCase()];
-  if (Number.isInteger(idx) && Array.isArray(question?.options) && question.options[idx] != null) {
-    return question.options[idx];
-  }
-  return ans;
-}
-
-function parseQuestionNumber(question, fallback) {
-  const direct = Number(question?.question_number);
-  if (Number.isInteger(direct) && direct > 0) return direct;
-
-  const text = String(question?.question_text || question?.content || '');
-  const bracketMatch = text.match(/\((\d+)\)/);
-  if (bracketMatch) return Number(bracketMatch[1]);
-
-  const leadingMatch = text.match(/^\s*(\d+)\s*[.)-]?\s*/);
-  if (leadingMatch) return Number(leadingMatch[1]);
-
-  return fallback + 1;
-}
-
-function buildPassageGroups(items) {
-  const grouped = new Map();
-
-  items.forEach((item, idx) => {
-    const normalizedPassage = String(item?.passage || '').trim();
-    const key =
-      item?.passage_id ||
-      item?.passage_group_id ||
-      item?.question_group_id ||
-      (normalizedPassage ? `passage:${normalizedPassage}` : `single:${item?.id || idx}`);
-
-    if (!grouped.has(key)) {
-      grouped.set(key, []);
-    }
-    grouped.get(key).push(item);
-  });
-
-  return Array.from(grouped.entries())
-    .map(([key, questions]) => {
-      const sorted = questions
-        .slice()
-        .sort((a, b) => parseQuestionNumber(a, 0) - parseQuestionNumber(b, 0) || Number(a?.id || 0) - Number(b?.id || 0))
-        .map((question, qIndex) => ({
-          ...question,
-          _groupKey: String(key),
-          _questionKey: question?.id ? `id-${question.id}` : `${key}-${qIndex}`,
-          _questionNo: parseQuestionNumber(question, qIndex),
-        }));
-
-      return {
-        key: String(key),
-        passage: sorted.find((q) => q?.passage)?.passage || '',
-        part: Number(sorted[0]?.part || 0),
-        questions: sorted,
-      };
-    })
-    .sort((a, b) => (a.questions[0]?._questionNo || 0) - (b.questions[0]?._questionNo || 0));
-}
-
-function compactText(text, maxLength = 240) {
-  const normalized = String(text ?? '').replace(/\s+/g, ' ').trim();
-  if (normalized.length <= maxLength) return normalized;
-  return `${normalized.slice(0, maxLength).trim()}...`;
-}
-
-function buildQuestionFocusPrompt(question) {
-  const rawText = compactText(question?.question_text || question?.content || '', 120);
-  if (!rawText) return 'từ/câu này nghĩa là gì?';
-
-  const cleaned = rawText.replace(/[\s.?!,:;"'`~()[\]{}<>-]+/g, ' ').trim();
-  const words = cleaned.split(/\s+/).filter(Boolean);
-
-  if (words.length <= 6) {
-    return `${cleaned} nghĩa là gì?`;
-  }
-
-  const firstChunk = words.slice(0, 6).join(' ');
-  return `giải thích câu này: ${firstChunk}${words.length > 6 ? '...' : ''}`;
-}
-
-function buildPracticeAiContext({ isGroupMode, currentGroup, currentGroupQuestions, singleQuestion, answer }) {
-  const pieces = [];
-
-  if (isGroupMode) {
-    if (currentGroup?.passage) {
-      pieces.push(`Passage: ${compactText(currentGroup.passage, 420)}`);
-    }
-
-    if (currentGroupQuestions.length) {
-      const questionSummary = currentGroupQuestions
-        .map((question) => {
-          const questionText = compactText(question?.question_text || question?.content || '', 180);
-          const optionText = Array.isArray(question?.options) && question.options.length
-            ? ` | Options: ${question.options.map((option) => compactText(option, 40)).join(' | ')}`
-            : '';
-          return `Q${question._questionNo}: ${questionText}${optionText}`;
-        })
-        .join('\n');
-      pieces.push(`Questions:\n${questionSummary}`);
-    }
-  } else if (singleQuestion) {
-    const questionText = compactText(singleQuestion.question_text || singleQuestion.content || '', 220);
-    pieces.push(`Question: ${questionText}`);
-
-    if (singleQuestion.passage) {
-      pieces.push(`Passage: ${compactText(singleQuestion.passage, 420)}`);
-    }
-
-    if (Array.isArray(singleQuestion.options) && singleQuestion.options.length) {
-      pieces.push(`Options: ${singleQuestion.options.map((option) => compactText(option, 60)).join(' | ')}`);
-    }
-  }
-
-  if (answer?.trim()) {
-    pieces.push(`Student draft/answer: ${compactText(answer, 160)}`);
-  }
-
-  return pieces.join('\n');
-}
-
 export default function Practice() {
-  const [params] = useSearchParams();
-  const toast = useToast();
+    // State cấu hình bài học
+    const [selectedPart, setSelectedPart] = useState(5);
+    const [questionCount, setQuestionCount] = useState(10);
+    const [isStarted, setIsStarted] = useState(false);
+    
+    // State quản lý câu hỏi và bài làm
+    const [questions, setQuestions] = useState([]);
+    const [passages, setPassages] = useState([]);
+    const [currentPassageIndex, setCurrentPassageIndex] = useState(0);
+    const [userAnswers, setUserAnswers] = useState({});
+    const [checkedQuestions, setCheckedQuestions] = useState({});
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-  const [step, setStep] = useState('config');
-  const [skill] = useState('reading');
-  const [readingPart, setReadingPart] = useState(Number(params.get('part')) || 5);
-  const [count, setCount] = useState(10);
+    // State AI Assist
+    const [aiMessages, setAiMessages] = useState([]);
+    const [aiInput, setAiInput] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const threadEndRef = useRef(null);
 
-  const [questions, setQuestions] = useState([]);
-  const [idx, setIdx] = useState(0);
-  const [answer, setAnswer] = useState('');
-  const [result, setResult] = useState(null);
-
-  const [groups, setGroups] = useState([]);
-  const [groupIdx, setGroupIdx] = useState(0);
-  const [groupAnswers, setGroupAnswers] = useState({});
-  const [groupResults, setGroupResults] = useState({});
-  const [checkedGroupKeys, setCheckedGroupKeys] = useState({});
-  const [aiHelpMessages, setAiHelpMessages] = useState([]);
-  const [aiHelpInput, setAiHelpInput] = useState('');
-  const [aiHelpLoading, setAiHelpLoading] = useState(false);
-
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const questionListRef = useRef(null);
-  const questionNodeRefs = useRef({});
-  const aiHelpBottomRef = useRef(null);
-
-  const markPracticeFinished = useCallback(() => {
-    const stamp = String(Date.now());
-    localStorage.setItem('pengwin_last_practice_completed_at', stamp);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('pengwin:practice-finished'));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (![5, 6, 7].includes(Number(readingPart))) {
-      setReadingPart(5);
-    }
-  }, [readingPart]);
-
-  const isGroupMode = Number(readingPart) === 6 || Number(readingPart) === 7;
-
-  const currentGroup = groups[groupIdx] || null;
-  const currentGroupQuestions = currentGroup?.questions || [];
-  const activeMetaQuestion = isGroupMode ? currentGroupQuestions[0] : questions[idx];
-  const currentSingleQuestion = questions[idx] || null;
-  const activeAiQuestion = isGroupMode ? currentGroupQuestions[0] || null : currentSingleQuestion;
-
-  const allGroupAnswered = useMemo(() => {
-    if (!isGroupMode || !currentGroupQuestions.length) return false;
-    return currentGroupQuestions.every((q) => normalizeAnswer(groupAnswers[q._questionKey]).length > 0);
-  }, [isGroupMode, currentGroupQuestions, groupAnswers]);
-
-  const currentGroupChecked = Boolean(currentGroup && checkedGroupKeys[currentGroup.key]);
-
-  useEffect(() => {
-    if (step !== 'playing') {
-      setAiHelpMessages([]);
-      setAiHelpInput('');
-      return;
-    }
-
-    setAiHelpMessages([]);
-    setAiHelpInput('');
-  }, [step, idx, groupIdx, readingPart]);
-
-  useEffect(() => {
-    if (!aiHelpMessages.length && !aiHelpLoading) return;
-    aiHelpBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [aiHelpMessages, aiHelpLoading]);
-
-  const groupCompletion = useMemo(() => {
-    if (!isGroupMode || !groups.length) return { current: 0, total: 0 };
-    return { current: groupIdx + 1, total: groups.length };
-  }, [isGroupMode, groupIdx, groups.length]);
-
-  const startSession = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await questionApi.startPractice(skill, count, readingPart);
-
-      setScore({ correct: 0, total: 0 });
-      setResult(null);
-      setAnswer('');
-      setIdx(0);
-
-      if (Number(readingPart) === 6 || Number(readingPart) === 7) {
-        const apiPassages = Array.isArray(data?.passages) ? data.passages : [];
-        const groupedFromApi = apiPassages.map((passageObject, passageIndex) => {
-          const questionsInPassage = Array.isArray(passageObject?.questions) ? passageObject.questions : [];
-          const sorted = questionsInPassage
-            .slice()
-            .sort((a, b) => parseQuestionNumber(a, 0) - parseQuestionNumber(b, 0) || Number(a?.id || 0) - Number(b?.id || 0))
-            .map((question, qIndex) => ({
-              ...question,
-              _groupKey: String(passageObject?.passage_id || `passage-${passageIndex}`),
-              _questionKey: question?.id ? `id-${question.id}` : `passage-${passageIndex}-${qIndex}`,
-              _questionNo: parseQuestionNumber(question, qIndex),
-            }));
-
-          return {
-            key: String(passageObject?.passage_id || `passage-${passageIndex}`),
-            passage: String(passageObject?.passage || ''),
-            part: Number(passageObject?.part || readingPart),
-            questions: sorted,
-          };
-        }).filter((group) => group.questions.length > 0);
-
-        const legacyQuestions = Array.isArray(data?.questions) ? data.questions : [];
-        const grouped = groupedFromApi.length ? groupedFromApi : buildPassageGroups(legacyQuestions);
-
-        if (!grouped.length) {
-          toast('No grouped passages found for this part.', 'error');
-          return;
+    useEffect(() => {
+        if (threadEndRef.current) {
+            threadEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
+    }, [aiMessages]);
 
-        setGroups(grouped);
-        setGroupIdx(0);
-        setGroupAnswers({});
-        setGroupResults({});
-        setCheckedGroupKeys({});
-        setQuestions([]);
-      } else {
-        const pickedQuestions = (Array.isArray(data?.questions) ? data.questions : []).filter(
-          (q) => Number(q?.part) === Number(readingPart)
-        );
-        if (!pickedQuestions.length) {
-          toast('No questions available for this selection.', 'error');
-          return;
-        }
-        setQuestions(pickedQuestions);
-        setGroups([]);
-      }
-
-      setStep('playing');
-    } catch (e) {
-      toast(e.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [skill, count, readingPart, toast]);
-
-  const persistReadingPartProgress = useCallback((part, isCorrect) => {
-    const key = 'pengwin_reading_part_progress';
-    const current = JSON.parse(localStorage.getItem(key) || '{}');
-    const partKey = `part${Number(part)}`;
-    const prev = current[partKey] || { done: 0, correct: 0 };
-    current[partKey] = {
-      done: prev.done + 1,
-      correct: prev.correct + (isCorrect ? 1 : 0),
-    };
-    localStorage.setItem(key, JSON.stringify(current));
-  }, []);
-
-  const handleSingleSubmit = async () => {
-    if (!answer.trim()) {
-      toast('Please select or enter an answer.', 'error');
-      return;
-    }
-
-    const currentQ = questions[idx];
-    if (!currentQ) return;
-
-    setSubmitting(true);
-    try {
-      if (currentQ.id) {
-        const res = await questionApi.submitAnswer(currentQ.id, answer);
-        const normalizedCorrect = resolveCorrectAnswer(currentQ, res.correct_answer);
-        const normalizedRes = {
-          ...res,
-          correct_answer: normalizedCorrect,
-          is_correct: normalizeAnswer(answer) === normalizeAnswer(normalizedCorrect),
-        };
-
-        setResult(normalizedRes);
-        setScore((s) => ({
-          correct: s.correct + (normalizedRes.is_correct ? 1 : 0),
-          total: s.total + 1,
-        }));
-        if (currentQ.skill === 'reading' && [5, 6, 7].includes(Number(currentQ.part))) {
-          persistReadingPartProgress(currentQ.part, normalizedRes.is_correct);
-        }
-      } else {
-        const correctAnswer = resolveCorrectAnswer(currentQ, currentQ.correct_answer);
-        const isCorrect = normalizeAnswer(answer) === normalizeAnswer(correctAnswer);
-        const localResult = {
-          is_correct: isCorrect,
-          correct_answer: correctAnswer,
-          explanation: currentQ.explanation || null,
-          ai_feedback: null,
-          xp_gained: isCorrect ? 10 : 2,
-        };
-        setResult(localResult);
-        setScore((s) => ({ correct: s.correct + (isCorrect ? 1 : 0), total: s.total + 1 }));
-      }
-    } catch (e) {
-      toast(e.message, 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSingleNext = () => {
-    if (idx + 1 >= questions.length) {
-      markPracticeFinished();
-      setStep('done');
-      return;
-    }
-    setIdx((i) => i + 1);
-    setAnswer('');
-    setResult(null);
-  };
-
-  const handleGroupAnswerChange = (questionKey, value) => {
-    if (!currentGroup || currentGroupChecked) return;
-    setGroupAnswers((prev) => ({ ...prev, [questionKey]: value }));
-  };
-
-  const handleCheckGroup = () => {
-    if (!currentGroup) return;
-    if (currentGroupChecked) return;
-
-    if (!allGroupAnswered) {
-      toast('Please answer all questions in this passage before checking.', 'error');
-      return;
-    }
-
-    const resultByQuestion = {};
-    let correctCount = 0;
-
-    currentGroupQuestions.forEach((question) => {
-      const selected = groupAnswers[question._questionKey] || '';
-      const correctAnswer = resolveCorrectAnswer(question, question.correct_answer);
-      const isCorrect = normalizeAnswer(selected) === normalizeAnswer(correctAnswer);
-
-      resultByQuestion[question._questionKey] = {
-        is_correct: isCorrect,
-        correct_answer: correctAnswer,
-        explanation: question.explanation || null,
-      };
-
-      if (isCorrect) correctCount += 1;
-      persistReadingPartProgress(question.part, isCorrect);
-    });
-
-    setGroupResults((prev) => ({ ...prev, [currentGroup.key]: resultByQuestion }));
-    setCheckedGroupKeys((prev) => ({ ...prev, [currentGroup.key]: true }));
-    setScore((prev) => ({
-      correct: prev.correct + correctCount,
-      total: prev.total + currentGroupQuestions.length,
-    }));
-  };
-
-  const handleNextGroup = () => {
-    if (!groups.length) return;
-    if (groupIdx + 1 >= groups.length) {
-      markPracticeFinished();
-      setStep('done');
-      return;
-    }
-    setGroupIdx((i) => i + 1);
-    requestAnimationFrame(() => {
-      if (questionListRef.current) questionListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  };
-
-  const scrollToQuestion = (questionNo) => {
-    const target = currentGroupQuestions.find((q) => Number(q._questionNo) === Number(questionNo));
-    if (!target) return;
-
-    const node = questionNodeRefs.current[target._questionKey];
-    const container = questionListRef.current;
-    if (!node || !container) return;
-
-    const offset = Math.max(node.offsetTop - container.offsetTop - 10, 0);
-    container.scrollTo({ top: offset, behavior: 'smooth' });
-  };
-
-  const sendPracticeAiMessage = useCallback(
-    async (rawInput) => {
-      const text = String(rawInput ?? '').trim();
-      if (!text || aiHelpLoading) return;
-
-      const context = buildPracticeAiContext({
-        isGroupMode,
-        currentGroup,
-        currentGroupQuestions,
-        singleQuestion: currentSingleQuestion,
-        answer,
-      });
-      const userPrompt = context
-        ? `Please answer based on the practice context below.\n\n${context}\n\nStudent question: ${text}`
-        : text;
-
-      setAiHelpLoading(true);
-      setAiHelpInput('');
-
-      try {
-        const savedUserMessage = await chatApi.send(text);
-        setAiHelpMessages((prev) => [...prev, savedUserMessage]);
-
-        const savedAiMessage = await chatApi.generate(userPrompt, PRACTICE_AI_SYSTEM_PROMPT);
-        setAiHelpMessages((prev) => [...prev, savedAiMessage]);
-      } catch (e) {
-        toast(e.message || 'Could not ask AI right now.', 'error');
-      } finally {
-        setAiHelpLoading(false);
-      }
-    },
-    [aiHelpLoading, answer, currentGroup, currentGroupQuestions, currentSingleQuestion, isGroupMode, toast]
-  );
-
-  const handleAiHelpSubmit = async () => {
-    await sendPracticeAiMessage(aiHelpInput);
-  };
-
-  const renderPassageWithInteractiveBlanks = (passageText) => {
-    const text = String(passageText || '');
-    if (!text) return null;
-
-    const regex = /\((\d+)\)/g;
-    const nodes = [];
-    let cursor = 0;
-    let match;
-
-    while ((match = regex.exec(text)) !== null) {
-      const matchStart = match.index;
-      const matchEnd = regex.lastIndex;
-      const blankNo = Number(match[1]);
-      const hasQuestion = currentGroupQuestions.some((q) => Number(q._questionNo) === blankNo);
-
-      if (matchStart > cursor) {
-        nodes.push(
-          <span key={`txt-${cursor}`}>{text.slice(cursor, matchStart)}</span>
-        );
-      }
-
-      if (hasQuestion) {
-        nodes.push(
-          <button
-            type="button"
-            key={`blank-${matchStart}`}
-            className="passage-blank"
-            onClick={() => scrollToQuestion(blankNo)}
-            title={`Go to Question ${blankNo}`}
-          >
-            ({blankNo})
-          </button>
-        );
-      } else {
-        nodes.push(
-          <span key={`blank-static-${matchStart}`} className="passage-blank static">
-            ({blankNo})
-          </span>
-        );
-      }
-
-      cursor = matchEnd;
-    }
-
-    if (cursor < text.length) {
-      nodes.push(<span key={`txt-end-${cursor}`}>{text.slice(cursor)}</span>);
-    }
-
-    return <>{nodes}</>;
-  };
-
-  const renderAiHelpPanel = () => (
-    <div className="practice-ai-assist">
-      <div className="practice-ai-head">
-        <div>
-          <div className="practice-ai-title">AI hỏi nhanh ngay trong bài</div>
-          <div className="practice-ai-sub">
-            Hỏi nghĩa từ, dịch câu, hoặc nhờ giải thích ngữ cảnh mà không cần rời khỏi Practice.
-          </div>
-        </div>
-        {activeAiQuestion && (
-          <div className="practice-ai-context">
-            {isGroupMode ? `Passage ${groupIdx + 1}` : `Question ${idx + 1}`}
-          </div>
-        )}
-      </div>
-
-      <div className="practice-ai-chips">
-        {[buildQuestionFocusPrompt(activeAiQuestion), ...PRACTICE_AI_STATIC_PROMPTS].map((prompt) => (
-          <button key={prompt} type="button" className="practice-ai-chip" onClick={() => sendPracticeAiMessage(prompt)} disabled={aiHelpLoading}>
-            {prompt}
-          </button>
-        ))}
-      </div>
-
-      <div className="practice-ai-thread">
-        {aiHelpMessages.length === 0 ? (
-          <div className="practice-ai-empty">
-            Ví dụ: hỏi “giải thích câu này ngắn gọn”.
-          </div>
-        ) : (
-          aiHelpMessages.map((message) => (
-            <div key={message.id} className={`practice-ai-msg ${message.role === 'user' ? 'user' : 'ai'}`}>
-              <div className="practice-ai-bubble">{message.content}</div>
-            </div>
-          ))
-        )}
-        {aiHelpLoading && (
-          <div className="practice-ai-msg ai">
-            <div className="practice-ai-bubble">Đang trả lời...</div>
-          </div>
-        )}
-        <div ref={aiHelpBottomRef} />
-      </div>
-
-      <div className="practice-ai-input-row">
-        <textarea
-          className="practice-ai-input"
-          placeholder="Nhập câu hỏi cho AI về từ/câu bạn đang làm..."
-          value={aiHelpInput}
-          onChange={(e) => setAiHelpInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleAiHelpSubmit();
+    const handleStartPractice = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await client.post('/api/questions/practice/start', {
+                skill: 'reading',
+                part: parseInt(selectedPart),
+                count: parseInt(questionCount)
+            });
+            
+            if (response.data.passages && response.data.passages.length > 0) {
+                setPassages(response.data.passages);
+                setQuestions([]);
+                setCurrentPassageIndex(0);
+            } else {
+                setQuestions(response.data.questions || []);
+                setPassages([]);
             }
-          }}
-          disabled={aiHelpLoading}
-          rows={2}
-        />
-        <button className="btn btn-primary practice-ai-send" onClick={handleAiHelpSubmit} disabled={aiHelpLoading || !aiHelpInput.trim()}>
-          {aiHelpLoading ? <span className="spinner" /> : 'Ask AI'}
-        </button>
-      </div>
-    </div>
-  );
+            setIsStarted(true);
+            setAiMessages([]);
+            setUserAnswers({});
+            setCheckedQuestions({});
+        } catch (err) {
+            console.error(err);
+            setError('Failed to fetch questions. Please try again!');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  if (step === 'config') {
-    return (
-      <div className="fade-up practice-config">
-        <div className="page-header">
-          <h1 className="page-title">▶ Practice</h1>
-          <p className="page-sub">Choose TOEIC Reading part and question count to begin</p>
-        </div>
-        <div className="card" style={{ padding: 28 }}>
-          <div className="form-group" style={{ marginBottom: 22 }}>
-            <label className="form-label">TOEIC Reading Part</label>
-            <div className="part-picker">
-              {TOEIC_PARTS.map((p) => (
-                <button
-                  key={p.value}
-                  className={`skill-pick-btn part-pick-btn ${readingPart === p.value ? 'active' : ''}`}
-                  onClick={() => setReadingPart(p.value)}
-                >
-                  <img src={IMG_VOCAB} alt={p.label} />
-                  <span>{p.label}</span>
-                  <small className="part-pick-sub">{p.sub}</small>
-                </button>
-              ))}
-            </div>
-          </div>
+    const handleSubmitAnswer = async (questionId) => {
+        const answer = userAnswers[questionId];
+        if (!answer) return;
 
-          <div className="form-group" style={{ marginBottom: 28 }}>
-            <label className="form-label">
-              Question count: <strong style={{ color: 'var(--ocean)', fontSize: 15 }}>{count}</strong>
-            </label>
-            <input
-              type="range"
-              min={5}
-              max={30}
-              value={count}
-              onChange={(e) => setCount(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--ocean)', marginTop: 8 }}
-            />
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 12,
-                color: 'var(--text3)',
-                marginTop: 4,
-                fontWeight: 600,
-              }}
-            >
-              <span>5</span>
-              <span>30</span>
-            </div>
-          </div>
-          <button className="btn btn-primary btn-lg" style={{ width: '100%' }} onClick={startSession} disabled={loading}>
-            {loading ? (
-              <>
-                <span className="spinner" />Loading...
-              </>
-            ) : (
-              `▶ Start ${count} questions · Part ${readingPart}`
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  }
+        try {
+            const response = await client.post('/api/questions/practice/submit', {
+                question_id: questionId,
+                user_answer: answer
+            });
+            setCheckedQuestions(prev => ({
+                ...prev,
+                [questionId]: response.data
+            }));
+        } catch (err) {
+            console.error('Submit answer failed:', err);
+        }
+    };
 
-  if (step === 'done') {
-    return (
-      <div className="fade-up practice-done">
-        <div className="done-card card">
-          <img className="done-mascot" src={score.correct / score.total >= 0.7 ? IMG_PROGRESS : IMG_HERO} alt="" />
-          <h2 className="done-title">
-            {score.correct === score.total ? 'Perfect!' : score.correct / score.total >= 0.7 ? 'Great job!' : 'Keep going!'}
-          </h2>
-          <div className="done-score">
-            <span className="done-num accent">{score.correct}</span>
-            <span className="done-slash">/</span>
-            <span className="done-num">{score.total}</span>
-          </div>
-          <div className="done-pct">{Math.round((score.correct / Math.max(score.total, 1)) * 100)}% correct</div>
-          <p className="done-msg">
-            {score.correct === score.total
-              ? 'Excellent! You got everything right!'
-              : score.correct / Math.max(score.total, 1) >= 0.7
-              ? 'Nice work! Keep reviewing!'
-              : 'Check the Review section to study more!'}
-          </p>
-          <div className="done-actions">
-            <button className="btn btn-primary" onClick={startSession}>▶ Làm thêm</button>
-            <button className="btn btn-secondary" onClick={() => setStep('config')}>⚙ Change Part</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    const handleSendAiMessage = async (textToSend) => {
+        const msg = textToSend || aiInput;
+        if (!msg.trim()) return;
 
-  const singleQuestion = questions[idx];
-  const singleQuestionText = singleQuestion?.question_text || singleQuestion?.content || '';
-  const singleType = singleQuestion?.q_type || ((singleQuestion?.options && singleQuestion.options.length) ? 'mcq' : null);
+        const newUserMessage = { sender: 'user', text: msg };
+        setAiMessages(prev => [...prev, newUserMessage]);
+        if (!textToSend) setAiInput('');
+        setAiLoading(true);
 
-  return (
-    <div className="fade-up">
-      <div className="practice-header">
-        <div className="practice-meta">
-          <span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>{activeMetaQuestion?.skill}</span>
-          <span className="badge badge-purple">{activeMetaQuestion?.level}</span>
-          {activeMetaQuestion?.part && <span className="badge badge-yellow">Part {activeMetaQuestion.part}</span>}
-          <span className="badge badge-gray">
-            {isGroupMode ? `${groupCompletion.current} / ${groupCompletion.total} passages` : singleType?.replace('_', ' ')}
-          </span>
-        </div>
-        <div className="practice-progress">
-          <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 700 }}>
-            {isGroupMode ? `${groupCompletion.current} / ${groupCompletion.total}` : `${idx + 1} / ${questions.length}`}
-          </span>
-          <div className="progress-wrap" style={{ width: 120 }}>
-            <div
-              className="progress-fill"
-              style={{
-                width: `${isGroupMode
-                  ? (groupCompletion.current / Math.max(groupCompletion.total, 1)) * 100
-                  : ((idx + 1) / Math.max(questions.length, 1)) * 100
-                }%`,
-              }}
-            />
-          </div>
-          <span style={{ fontSize: 13, color: 'var(--mint2)', fontWeight: 800 }}>✓ {score.correct}</span>
-        </div>
-      </div>
+        try {
+            const response = await client.post('/api/chat/respond', { message: msg });
+            setAiMessages(prev => [...prev, { sender: 'ai', text: response.data.reply }]);
+        } catch (err) {
+            setAiMessages(prev => [...prev, { sender: 'ai', text: 'Penwin AI Assist đang bận xử lý, thử lại nhé! 🐾' }]);
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
-      <div className="step-dots">
-        {(isGroupMode ? groups : questions).map((_, i) => (
-          <div
-            key={i}
-            className={`step-dot ${i < (isGroupMode ? groupIdx : idx) ? 'done' : i === (isGroupMode ? groupIdx : idx) ? 'current' : ''}`}
-          />
-        ))}
-      </div>
-
-      {isGroupMode ? (
-        <div className="practice-reading-layout">
-          <div className="passage-card card">
-            <div className="passage-title">Passage</div>
-            <div className="passage-content">
-              {renderPassageWithInteractiveBlanks(currentGroup?.passage)}
-            </div>
-          </div>
-
-          <div className="question-card card">
-            <img className="question-bg-img" src={SKILL_IMGS[activeMetaQuestion?.skill] || IMG_VOCAB} alt="" />
-            <div className="question-list-title">Questions in this passage</div>
-            <div className="question-list-mini">
-              {currentGroupQuestions.map((question) => {
-                const qResult = groupResults[currentGroup?.key]?.[question._questionKey];
-                const isAnswered = normalizeAnswer(groupAnswers[question._questionKey]).length > 0;
-                return (
-                  <button
-                    key={question._questionKey}
-                    type="button"
-                    className={`mini-q-btn ${isAnswered ? 'answered' : ''} ${
-                      currentGroupChecked && qResult?.is_correct ? 'correct' : ''
-                    } ${currentGroupChecked && qResult && !qResult.is_correct ? 'wrong' : ''}`}
-                    onClick={() => scrollToQuestion(question._questionNo)}
-                  >
-                    Q{question._questionNo}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="match-hint" style={{ marginBottom: 12 }}>
-              For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.
-            </div>
-
-            <div className="question-scroll" ref={questionListRef}>
-              {currentGroupQuestions.map((question) => (
-                <div
-                  key={question._questionKey}
-                  className="group-question-block"
-                  ref={(el) => {
-                    questionNodeRefs.current[question._questionKey] = el;
-                  }}
-                >
-                  <QuestionCard
-                    question={question}
-                    questionNo={question._questionNo}
-                    selectedAnswer={groupAnswers[question._questionKey] || ''}
-                    onSelectAnswer={(value) => handleGroupAnswerChange(question._questionKey, value)}
-                    showFeedback={currentGroupChecked}
-                    result={groupResults[currentGroup?.key]?.[question._questionKey]}
-                  />
+    if (!isStarted) {
+        return (
+            <div className="practice-config">
+                <div style={{ backgroundColor: '#1e3a8a', padding: '24px', borderRadius: '12px', color: '#fff', marginBottom: '24px', textAlign: 'left' }}>
+                    <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 700 }}>▶ Practice</h2>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Choose TOEIC Reading part and question count to begin</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="question-card card">
-          <img className="question-bg-img" src={SKILL_IMGS[singleQuestion?.skill] || IMG_VOCAB} alt="" />
 
-          {singleQuestion?.passage ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ whiteSpace: 'pre-line', lineHeight: 1.6, fontSize: 14, color: 'var(--text2)' }}>{singleQuestion.passage}</div>
-              <div>
-                <p className="q-text">{singleQuestionText}</p>
-
-                {singleType === 'mcq' && !result && (
-                  <div className="choices">
-                    {(singleQuestion.options || []).map((opt, i) => (
-                      <button key={i} className={`choice ${answer === opt ? 'selected' : ''}`} onClick={() => setAnswer(opt)}>
-                        <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {singleType === 'mcq' && result && (
-                  <div className="choices">
-                    {(singleQuestion.options || []).map((opt, i) => (
-                      <div
-                        key={i}
-                        className={`choice static ${opt === result.correct_answer ? 'correct' : ''}${opt === answer && !result.is_correct ? ' wrong' : ''}`}
-                      >
-                        <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {(singleType === 'fill_blank' || singleType === 'writing' || singleType === 'speaking') && (
-                  <textarea
-                    className="form-textarea"
-                    placeholder={singleType === 'fill_blank' ? 'Enter your answer...' : 'Write your answer...'}
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    disabled={!!result}
-                    rows={singleType === 'writing' ? 5 : 2}
-                  />
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="q-text">{singleQuestionText}</p>
-
-              {singleType === 'mcq' && !result && (
-                <div className="choices">
-                  {(singleQuestion.options || []).map((opt, i) => (
-                    <button key={i} className={`choice ${answer === opt ? 'selected' : ''}`} onClick={() => setAnswer(opt)}>
-                      <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {singleType === 'mcq' && result && (
-                <div className="choices">
-                  {(singleQuestion.options || []).map((opt, i) => (
-                    <div
-                      key={i}
-                      className={`choice static ${opt === result.correct_answer ? 'correct' : ''}${opt === answer && !result.is_correct ? ' wrong' : ''}`}
-                    >
-                      <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
+                <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', textAlign: 'left' }}>
+                    <label style={{ fontWeight: 700, color: '#475569', fontSize: '13px', textTransform: 'uppercase' }}>TOEIC Reading Part</label>
+                    
+                    <div className="part-picker">
+                        <button className={`part-pick-btn ${selectedPart === 5 ? 'active' : ''}`} onClick={() => setSelectedPart(5)}>
+                            <img src="/assets/icons/part5.png" alt="Part 5" onError={(e) => e.target.src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png"} />
+                            <span>Part 5</span>
+                            <span className="part-pick-sub">Incomplete Sentences</span>
+                        </button>
+                        <button className={`part-pick-btn ${selectedPart === 6 ? 'active' : ''}`} onClick={() => setSelectedPart(6)}>
+                            <img src="/assets/icons/part6.png" alt="Part 6" onError={(e) => e.target.src="https://cdn-icons-png.flaticon.com/512/3593/3593497.png"} />
+                            <span>Part 6</span>
+                            <span className="part-pick-sub">Text Completion</span>
+                        </button>
+                        <button className={`part-pick-btn ${selectedPart === 7 ? 'active' : ''}`} onClick={() => setSelectedPart(7)}>
+                            <img src="/assets/icons/part7.png" alt="Part 7" onError={(e) => e.target.src="https://cdn-icons-png.flaticon.com/512/2202/2202111.png"} />
+                            <span>Part 7</span>
+                            <span className="part-pick-sub">Reading Comprehension</span>
+                        </button>
                     </div>
-                  ))}
+
+                    <div style={{ marginTop: '24px' }}>
+                        <label style={{ fontWeight: 700, color: '#475569', fontSize: '13px', display: 'block', marginBottom: '8px' }}>
+                            QUESTION COUNT: <span style={{ color: '#0ea5e9' }}>{questionCount}</span>
+                        </label>
+                        <input 
+                            type="range" min="5" max="30" step="5" value={questionCount} 
+                            onChange={(e) => setQuestionCount(e.target.value)}
+                            style={{ width: '100%', accentColor: '#0ea5e9' }}
+                        />
+                    </div>
+
+                    {error && <p style={{ color: '#ef4444', marginTop: '12px', fontSize: '14px' }}>❌ {error}</p>}
+
+                    <button 
+                        onClick={handleStartPractice} disabled={loading}
+                        style={{ marginTop: '24px', width: '100%', padding: '14px', backgroundColor: '#0ea5e9', color: '#fff', fontWeight: 700, border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}
+                    >
+                        {loading ? 'Loading Questions...' : `▶ Start ${questionCount} questions - Part ${selectedPart}`}
+                    </button>
                 </div>
-              )}
-              {(singleType === 'fill_blank' || singleType === 'writing' || singleType === 'speaking') && (
-                <textarea
-                  className="form-textarea"
-                  placeholder={singleType === 'fill_blank' ? 'Enter your answer...' : 'Write your answer...'}
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  disabled={!!result}
-                  rows={singleType === 'writing' ? 5 : 2}
-                />
-              )}
-            </>
-          )}
-
-          {result && (
-            <div className={`feedback ${result.is_correct ? 'correct-fb' : 'wrong-fb'}`}>
-              <div className="feedback-icon">{result.is_correct ? '✅' : '❌'}</div>
-              <div>
-                <div className="feedback-title">{result.is_correct ? `Correct! +${result.xp_gained} XP` : 'Incorrect'}</div>
-                {!result.is_correct && <div className="feedback-answer">Answer: <strong>{result.correct_answer}</strong></div>}
-                {result.explanation && <div className="feedback-explain">{result.explanation}</div>}
-              </div>
             </div>
-          )}
+        );
+    }
 
-          {renderAiHelpPanel()}
+    const activeQuestions = passages.length > 0 ? (passages[currentPassageIndex]?.questions || []) : questions;
+
+    return (
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px' }}>
+            
+            {/* CỘT TRÁI: ĐỀ THI & ĐÁP ÁN */}
+            <div style={{ textAlign: 'left' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: '16px 20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {/* 🌟 THU NHỎ LOGO XUỐNG CÒN 40PX GỌN GÀNG GÓC TRÊN */}
+                        <img src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png" alt="Penwin Mini" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                        <h3 style={{ margin: 0, fontWeight: 700, color: '#1e293b', fontSize: '18px' }}>TOEIC Part {selectedPart} Practice</h3>
+                    </div>
+                    <button onClick={() => setIsStarted(false)} style={{ padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', cursor: 'pointer', fontWeight: 600, color: '#475569' }}>Stop</button>
+                </div>
+
+                {/* Khung đoạn văn Part 6/7 */}
+                {passages.length > 0 && passages[currentPassageIndex] && (
+                    <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', padding: '24px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0ea5e9', backgroundColor: '#e0f2fe', padding: '4px 10px', borderRadius: '20px', display: 'inline-block', marginBottom: '12px' }}>
+                            📄 Passage {currentPassageIndex + 1} of {passages.length}
+                        </span>
+                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '15px', color: '#334155', fontFamily: 'Inter, sans-serif' }}>
+                            {passages[currentPassageIndex].passage}
+                        </div>
+                    </div>
+                )}
+
+                {/* SỐ LƯỢNG CÂU HỎI GRID */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ width: '100%', fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>QUESTIONS IN THIS BLOCK:</span>
+                    {activeQuestions.map((q, idx) => {
+                        const isAnswered = !!userAnswers[q.id];
+                        const isChecked = !!checkedQuestions[q.id];
+                        const isCorrect = checkedQuestions[q.id]?.is_correct;
+                        
+                        let bg = '#fff';
+                        let color = '#475569';
+                        if (isChecked) {
+                            bg = isCorrect ? '#22c55e' : '#ef4444';
+                            color = '#fff';
+                        } else if (isAnswered) {
+                            bg = '#bae6fd';
+                            color = '#0369a1';
+                        }
+
+                        return (
+                            <div 
+                                key={q.id} 
+                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: bg, color: color, border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 700, fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                            >
+                                Q{idx + 1}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* QUY TRÌNH RENDER CÂU HỎI KHÔNG VỠ LAYOUT */}
+                {activeQuestions.map((q, index) => {
+                    const result = checkedQuestions[q.id];
+
+                    return (
+                        <div key={q.id} style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                            <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '14px' }}>
+                                <h4 style={{ margin: 0, fontWeight: 700, color: '#0ea5e9', fontSize: '15px' }}>Question {index + 1}:</h4>
+                            </div>
+                            
+                            <p style={{ fontSize: '15.5px', color: '#1e293b', marginBottom: '20px', lineHeight: 1.6, fontWeight: 500 }}>
+                                {selectedPart === 5 ? (q.content || "archive") : q.content}
+                            </p>
+
+                            {/* 🌟 FIX ĐÁP ÁN: Đổi thành Cột dọc (Flex-Column) giãn cách đều, không bao giờ bị dính hàng ngang */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {['A', 'B', 'C', 'D'].map((opt) => {
+                                    // Bóc tách nội dung text, loại bỏ chữ cái thừa đầu chuỗi nếu có
+                                    let optionText = q[`option_${opt.toLowerCase()}`] || q[opt];
+                                    if (!optionText) return null;
+                                    
+                                    if (optionText.startsWith(opt) && optionText.length > 1) {
+                                        optionText = optionText.substring(1).trim();
+                                    }
+
+                                    const isSelected = userAnswers[q.id] === opt;
+                                    
+                                    return (
+                                        <button 
+                                            key={opt} disabled={!!result}
+                                            onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                                            style={{
+                                                width: '100%',
+                                                padding: '14px 18px',
+                                                border: isSelected ? '2px solid #0ea5e9' : '1px solid #e2e8f0',
+                                                backgroundColor: isSelected ? '#f0f9ff' : '#fff',
+                                                borderRadius: '8px',
+                                                cursor: result ? 'not-allowed' : 'pointer',
+                                                textAlign: 'left',
+                                                fontWeight: 500,
+                                                fontSize: '14.5px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                transition: 'all 0.15s ease',
+                                                boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                            }}
+                                        >
+                                            <span style={{ 
+                                                width: '28px', 
+                                                height: '28px', 
+                                                borderRadius: '50%', 
+                                                backgroundColor: isSelected ? '#0ea5e9' : '#f1f5f9', 
+                                                color: isSelected ? '#fff' : '#475569', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                marginRight: '12px', 
+                                                fontWeight: 700,
+                                                fontSize: '13px'
+                                            }}>{opt}</span>
+                                            <span style={{ color: '#334155' }}>{optionText}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* KIỂM TRA ĐÁP ÁN */}
+                            <div style={{ marginTop: '20px' }}>
+                                {!result ? (
+                                    <button 
+                                        onClick={() => handleSubmitAnswer(q.id)}
+                                        disabled={!userAnswers[q.id]}
+                                        style={{ padding: '10px 24px', backgroundColor: userAnswers[q.id] ? '#0ea5e9' : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: userAnswers[q.id] ? 'pointer' : 'not-allowed', fontSize: '14px', transition: 'background 0.2s' }}
+                                    >
+                                        Submit Answer
+                                    </button>
+                                ) : (
+                                    <div style={{ padding: '16px', backgroundColor: result.is_correct ? '#f0fdf4' : '#fef2f2', borderRadius: '8px', border: `1px solid ${result.is_correct ? '#bbf7d0' : '#fecaca'}` }}>
+                                        <div style={{ fontWeight: 700, color: result.is_correct ? '#16a34a' : '#dc2626', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            {result.is_correct ? '✅ Correct Answer!' : `❌ Incorrect! Correct Option is: ${result.correct_answer}`}
+                                        </div>
+                                        {result.explanation && (
+                                            <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#475569', lineHeight: 1.5, borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '8px' }}>
+                                                💡 <strong>Giải thích:</strong> {result.explanation}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {/* DI CHUYỂN PASSAGE */}
+                {passages.length > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <button 
+                            disabled={currentPassageIndex === 0}
+                            onClick={() => setCurrentPassageIndex(p => p - 1)}
+                            style={{ padding: '10px 18px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontWeight: 600, cursor: currentPassageIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentPassageIndex === 0 ? 0.5 : 1, fontSize: '14px' }}
+                        >
+                            ◀ Previous
+                        </button>
+                        <span style={{ fontWeight: 700, color: '#475569', fontSize: '14px' }}>Passage {currentPassageIndex + 1} of {passages.length}</span>
+                        <button 
+                            disabled={currentPassageIndex === passages.length - 1}
+                            onClick={() => setCurrentPassageIndex(p => p + 1)}
+                            style={{ padding: '10px 18px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontWeight: 600, cursor: currentPassageIndex === passages.length - 1 ? 'not-allowed' : 'pointer', opacity: currentPassageIndex === passages.length - 1 ? 0.5 : 1, fontSize: '14px' }}
+                        >
+                            Next ▶
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* CỘT PHẢI: AI ASSIST CHUẨN ĐÉT THEO CSS CỦA BẠN */}
+            <div>
+                <div className="practice-ai-assist" style={{ position: 'sticky', top: '20px', marginTop: 0 }}>
+                    <div className="practice-ai-head">
+                        <div>
+                            <div className="practice-ai-title">🤖 Penwin AI Assist</div>
+                            <div className="practice-ai-sub">Hỏi AI về từ vựng hoặc ngữ cảnh câu hỏi này nhé!</div>
+                        </div>
+                        <div className="practice-ai-context">Part {selectedPart}</div>
+                    </div>
+
+                    <div className="practice-ai-thread">
+                        {aiMessages.length === 0 ? (
+                            <div className="practice-ai-empty">Chưa có câu hỏi nào. Chọn nhanh gợi ý hoặc nhập tin nhắn dưới đây để trò chuyện!</div>
+                        ) : (
+                            aiMessages.map((m, i) => (
+                                <div key={i} className={`practice-ai-msg ${m.sender}`}>
+                                    <div className="practice-ai-bubble">{m.text}</div>
+                                </div>
+                            ))
+                        )}
+                        {aiLoading && (
+                            <div className="practice-ai-msg ai">
+                                <div className="practice-ai-bubble" style={{ color: '#94a3b8' }}>Penwin AI đang soạn câu trả lời... 🐾</div>
+                            </div>
+                        )}
+                        <div ref={threadEndRef} />
+                    </div>
+
+                    <div className="practice-ai-chips">
+                        <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Giải thích cấu trúc ngữ pháp và mẹo chọn đáp án câu hỏi này.')}>💡 Giải thích cấu trúc</button>
+                        <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Dịch nghĩa câu hỏi/đoạn văn này sang tiếng Việt giúp mình.')}>🇻🇳 Dịch câu này</button>
+                        <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Chỉ ra các từ vựng mới nâng cao xuất hiện trong bài này.')}>📚 Từ vựng khó</button>
+                    </div>
+
+                    <div className="practice-ai-input-row">
+                        <textarea 
+                            className="practice-ai-input" 
+                            placeholder="Nhập câu hỏi cho AI về bài làm..."
+                            value={aiInput}
+                            onChange={(e) => setAiInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendAiMessage();
+                                }
+                            }}
+                        />
+                        <button 
+                            className="practice-ai-send"
+                            onClick={() => handleSendAiMessage()}
+                            disabled={aiLoading || !aiInput.trim()}
+                            style={{ backgroundColor: '#0ea5e9', color: '#fff', border: 'none', cursor: 'pointer' }}
+                        >
+                            Ask AI
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
-      )}
-
-      <div className="practice-actions">
-        {isGroupMode ? (
-          !currentGroupChecked ? (
-            <button className="btn btn-primary" onClick={handleCheckGroup} disabled={submitting || !allGroupAnswered}>
-              Check Answer
-            </button>
-          ) : (
-            <button className="btn btn-primary" onClick={handleNextGroup}>
-              {groupIdx + 1 >= groups.length ? 'View results →' : 'Next passage →'}
-            </button>
-          )
-        ) : !result ? (
-          <button className="btn btn-primary" onClick={handleSingleSubmit} disabled={submitting || !answer.trim()}>
-            {submitting ? (
-              <>
-                <span className="spinner" />Grading...
-              </>
-            ) : (
-              'Submit'
-            )}
-          </button>
-        ) : (
-          <button className="btn btn-primary" onClick={handleSingleNext}>
-            {idx + 1 >= questions.length ? 'View results →' : 'Next question →'}
-          </button>
-        )}
-
-        <button className="btn btn-ghost" onClick={() => setStep('config')}>Stop</button>
-      </div>
-    </div>
-  );
+    );
 }
