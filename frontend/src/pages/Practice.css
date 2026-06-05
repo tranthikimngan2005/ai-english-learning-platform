@@ -168,3 +168,14 @@
   .practice-reading-layout { grid-template-columns:1fr; }
   .passage-card { max-height:none; }
 }
+/* AI Assist Styles */
+.practice-ai-box { margin-top:20px; padding:20px; background:#f8fafc; border:2px solid var(--sky2); border-radius:16px; text-align:left; }
+.practice-ai-header h3 { font-size:16px; color:var(--navy); margin:0 0 4px; }
+.practice-ai-header p { font-size:12px; color:var(--text3); margin-bottom:12px; }
+.practice-ai-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.practice-ai-chips .chip { padding:6px 12px; border-radius:99px; background:#fff; border:1px solid var(--sky2); font-size:12px; font-weight:700; color:var(--ocean); cursor:pointer; }
+.practice-ai-thread { max-height:200px; overflow-y:auto; background:#fff; padding:12px; border-radius:8px; border:1px solid var(--sky2); margin-bottom:12px; display:flex; flex-direction:column; gap:8px; }
+.practice-ai-thread .user { align-self:flex-end; background:var(--ocean); color:#fff; padding:8px 12px; border-radius:12px 12px 2px 12px; font-size:13px; }
+.practice-ai-thread .ai { align-self:flex-start; background:var(--sky); color:var(--navy); padding:8px 12px; border-radius:12px 12px 12px 2px; font-size:13px; }
+.practice-ai-box textarea { width:100%; padding:10px; border:2px solid var(--sky2); border-radius:8px; margin-bottom:8px; resize:none; font-family:inherit; }
+.practice-ai-box button:last-child { width:100%; padding:10px; background:var(--ocean); color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; }
