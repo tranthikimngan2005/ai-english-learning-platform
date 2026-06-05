@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { questionApi } from '../api/client';
-import IMG_GRAMMAR_ICON from '../../../iconapp/gammaravt.png';
-import IMG_TESTTIME_ICON from '../../../iconapp/testtime.png';
-import IMG_VOCAB_ICON from '../../../iconapp/vocabavt.png';
-import IMG_PENWIN_ICON from '../../../iconapp/avt.png';
-import IMG_AI_ICON from '../../../iconapp/AItutoravt.png';
-import IMG_CORRECT_ICON from '../../../iconapp/usercorrect.png';
-import IMG_INCORRECT_ICON from '../../../iconapp/userincorrect.png';
+import IMG_GRAMMAR_ICON from '../assets/iconapp/gammaravt.png'; // 🌟 Đã sửa đường dẫn hợp lệ bên trong thư mục src
+import IMG_TESTTIME_ICON from '../assets/iconapp/testtime.png';
+import IMG_VOCAB_ICON from '../assets/iconapp/vocabavt.png';
+import IMG_PENWIN_ICON from '../assets/iconapp/avt.png';
+import IMG_AI_ICON from '../assets/iconapp/AItutoravt.png';
+import IMG_CORRECT_ICON from '../assets/iconapp/usercorrect.png';
+import IMG_INCORRECT_ICON from '../assets/iconapp/userincorrect.png';
 import './Practice.css';
 
 export default function Practice() {
@@ -111,7 +111,7 @@ export default function Practice() {
         : questions;
     const currentQuestion = activeQuestions[currentQuestionIndex];
 
-    // ── SETUP SCREEN ──
+    // ── SETUP SCREEN NGUYÊN BẢN ──
     if (!isStarted) {
         return (
             <div className="practice-page fade-up">
@@ -164,7 +164,7 @@ export default function Practice() {
         );
     }
 
-    // ── PRACTICE SCREEN ──
+    // ── PRACTICE SCREEN NGUYÊN BẢN ──
     return (
         <div className="practice-page practice-screen-layout fade-up">
 
