@@ -607,7 +607,6 @@ export default function Practice() {
                   className={`skill-pick-btn part-pick-btn ${readingPart === p.value ? 'active' : ''}`}
                   onClick={() => setReadingPart(p.value)}
                 >
-                  <img src={IMG_VOCAB} alt={p.label} />
                   <span>{p.label}</span>
                   <small className="part-pick-sub">{p.sub}</small>
                 </button>
@@ -729,18 +728,19 @@ export default function Practice() {
       </div>
 
       {isGroupMode ? (
-        <div className="practice-reading-layout">
-          <div className="passage-card card">
+        <div className="practice-reading-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start', textAlign: 'left' }}>
+          {/* CỘT TRÁI: HIỂN THỊ ĐOẠN VĂN ĐỌC HIỂU (STICKY) */}
+          <div className="passage-card card" style={{ position: 'sticky', top: '20px', maxHeight: '75vh', overflowY: 'auto' }}>
             <div className="passage-title">Passage</div>
-            <div className="passage-content">
+            <div className="passage-content" style={{ lineHeight: 1.7, fontSize: '15px' }}>
               {renderPassageWithInteractiveBlanks(currentGroup?.passage)}
             </div>
           </div>
 
-          <div className="question-card card">
-            <img className="question-bg-img" src={SKILL_IMGS[activeMetaQuestion?.skill] || IMG_VOCAB} alt="" />
+          {/* CỘT PHẢI: HIỂN THỊ DANH SÁCH CÂU HỎI ĐỔ DỌC CHUẨN CARD VÀ NÚT BẤM */}
+          <div className="question-card card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="question-list-title">Questions in this passage</div>
-            <div className="question-list-mini">
+            <div className="question-list-mini" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
               {currentGroupQuestions.map((question) => {
                 const qResult = groupResults[currentGroup?.key]?.[question._questionKey];
                 const isAnswered = normalizeAnswer(groupAnswers[question._questionKey]).length > 0;
@@ -752,6 +752,7 @@ export default function Practice() {
                       currentGroupChecked && qResult?.is_correct ? 'correct' : ''
                     } ${currentGroupChecked && qResult && !qResult.is_correct ? 'wrong' : ''}`}
                     onClick={() => scrollToQuestion(question._questionNo)}
+                    style={{ padding: '6px 12px', borderRadius: '6px', fontWeight: 700 }}
                   >
                     Q{question._questionNo}
                   </button>
@@ -759,71 +760,103 @@ export default function Practice() {
               })}
             </div>
 
-            <div className="match-hint" style={{ marginBottom: 12 }}>
+            <div className="match-hint" style={{ marginBottom: 12, fontSize: '12px', color: 'var(--text3)' }}>
               For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.
             </div>
 
-            <div className="question-scroll" ref={questionListRef}>
-              {currentGroupQuestions.map((question) => (
-                <div
-                  key={question._questionKey}
-                  className="group-question-block"
-                  ref={(el) => {
-                    questionNodeRefs.current[question._questionKey] = el;
-                  }}
-                >
-                  <QuestionCard
-                    question={question}
-                    questionNo={question._questionNo}
-                    selectedAnswer={groupAnswers[question._questionKey] || ''}
-                    onSelectAnswer={(value) => handleGroupAnswerChange(question._questionKey, value)}
-                    showFeedback={currentGroupChecked}
-                    result={groupResults[currentGroup?.key]?.[question._questionKey]}
-                  />
-                </div>
-              ))}
+            <div className="question-scroll" ref={questionListRef} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {currentGroupQuestions.map((question) => {
+                const result = groupResults[currentGroup?.key]?.[question._questionKey];
+                const optionsList = getQuestionOptions(question);
+                
+                return (
+                  <div
+                    key={question._questionKey}
+                    className="group-question-block"
+                    ref={(el) => {
+                      questionNodeRefs.current[question._questionKey] = el;
+                    }}
+                    style={{ borderBottom: '1px solid var(--sky2)', paddingBottom: '16px', textAlign: 'left' }}
+                  >
+                    <div style={{ fontWeight: 700, color: 'var(--ocean)', marginBottom: '6px' }}>Question {question._questionNo}</div>
+                    <div style={{ marginBottom: '12px', fontWeight: 600, color: 'var(--navy)' }}>{question.question_text || question.content}</div>
+
+                    <div className="choices" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {optionsList.map((opt, i) => {
+                        const letter = ['A', 'B', 'C', 'D'][i];
+                        const isCurrentPicked = groupAnswers[question._questionKey] === opt;
+
+                        let optionClass = "";
+                        if (result && result.correct_answer === opt) optionClass = "correct";
+                        else if (result && isCurrentPicked && !result.is_correct) optionClass = "wrong";
+
+                        return (
+                          <button
+                            key={i}
+                            disabled={currentGroupChecked}
+                            className={`choice ${isCurrentPicked ? 'selected' : ''} ${optionClass}`}
+                            onClick={() => handleGroupAnswerChange(question._questionKey, opt)}
+                            style={{ textAlign: 'left', width: '100%' }}
+                          >
+                            <span className="choice-letter" style={{
+                              background: optionClass === 'correct' ? '#10b981' : optionClass === 'wrong' ? '#ef4444' : '',
+                              color: optionClass ? '#fff' : ''
+                            }}>{letter}</span>
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+            {renderAiHelpPanel()}
           </div>
         </div>
       ) : (
-        <div className="question-card card">
-          <img className="question-bg-img" src={SKILL_IMGS[singleQuestion?.skill] || IMG_VOCAB} alt="" />
-
+        /* ⌨️ KHU VỰC HIỂN THỊ ĐƠN CÂU CHO PART 5 (MẪU CHUẨN REVIEW - ẤN CHỌN ĐƯỢC ĐÁP ÁN) */
+        <div className="question-card card" style={{ textAlign: 'left', padding: '24px' }}>
           {singleQuestion?.passage ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ whiteSpace: 'pre-line', lineHeight: 1.6, fontSize: 14, color: 'var(--text2)' }}>{singleQuestion.passage}</div>
               <div>
                 <p className="q-text">{singleQuestionText}</p>
 
-                {singleType === 'mcq' && !result && (
-                  <div className="choices">
-                    {(singleQuestion.options || []).map((opt, i) => (
-                      <button key={i} className={`choice ${answer === opt ? 'selected' : ''}`} onClick={() => setAnswer(opt)}>
-                        <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                      </button>
-                    ))}
+                {singleType === 'mcq' && (
+                  <div className="choices" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(singleQuestion.options || []).map((opt, i) => {
+                      const letter = String.fromCharCode(65 + i);
+                      let optionClass = "";
+                      if (result && opt === result.correct_answer) optionClass = "correct";
+                      else if (result && answer === opt && !result.is_correct) optionClass = "wrong";
+
+                      return (
+                        <button 
+                          key={i} 
+                          disabled={!!result} 
+                          className={`choice ${answer === opt ? 'selected' : ''} ${optionClass}`} 
+                          onClick={() => setAnswer(opt)}
+                          style={{ textAlign: 'left', width: '100%' }}
+                        >
+                          <span className="choice-letter" style={{
+                            background: optionClass === 'correct' ? '#10b981' : optionClass === 'wrong' ? '#ef4444' : '',
+                            color: optionClass ? '#fff' : ''
+                          }}>{letter}</span>
+                          {opt}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
-                {singleType === 'mcq' && result && (
-                  <div className="choices">
-                    {(singleQuestion.options || []).map((opt, i) => (
-                      <div
-                        key={i}
-                        className={`choice static ${opt === result.correct_answer ? 'correct' : ''}${opt === answer && !result.is_correct ? ' wrong' : ''}`}
-                      >
-                        <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {(singleType === 'fill_blank' || singleType === 'writing' || singleType === 'speaking') && (
+                {singleType !== 'mcq' && (
                   <textarea
                     className="form-textarea"
-                    placeholder={singleType === 'fill_blank' ? 'Enter your answer...' : 'Write your answer...'}
+                    placeholder="Enter your answer..."
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
                     disabled={!!result}
-                    rows={singleType === 'writing' ? 5 : 2}
+                    rows={2}
                   />
                 )}
               </div>
@@ -832,47 +865,52 @@ export default function Practice() {
             <>
               <p className="q-text">{singleQuestionText}</p>
 
-              {singleType === 'mcq' && !result && (
-                <div className="choices">
-                  {(singleQuestion.options || []).map((opt, i) => (
-                    <button key={i} className={`choice ${answer === opt ? 'selected' : ''}`} onClick={() => setAnswer(opt)}>
-                      <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                    </button>
-                  ))}
+              {singleType === 'mcq' && (
+                <div className="choices" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {(singleQuestion.options || []).map((opt, i) => {
+                    const letter = String.fromCharCode(65 + i);
+                    let optionClass = "";
+                    if (result && opt === result.correct_answer) optionClass = "correct";
+                    else if (result && answer === opt && !result.is_correct) optionClass = "wrong";
+
+                    return (
+                      <button 
+                        key={i} 
+                        disabled={!!result} 
+                        className={`choice ${answer === opt ? 'selected' : ''} ${optionClass}`} 
+                        onClick={() => setAnswer(opt)}
+                        style={{ textAlign: 'left', width: '100%' }}
+                      >
+                        <span className="choice-letter" style={{
+                          background: optionClass === 'correct' ? '#10b981' : optionClass === 'wrong' ? '#ef4444' : '',
+                          color: optionClass ? '#fff' : ''
+                        }}>{letter}</span>
+                        {opt}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-              {singleType === 'mcq' && result && (
-                <div className="choices">
-                  {(singleQuestion.options || []).map((opt, i) => (
-                    <div
-                      key={i}
-                      className={`choice static ${opt === result.correct_answer ? 'correct' : ''}${opt === answer && !result.is_correct ? ' wrong' : ''}`}
-                    >
-                      <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {(singleType === 'fill_blank' || singleType === 'writing' || singleType === 'speaking') && (
+              {singleType !== 'mcq' && (
                 <textarea
                   className="form-textarea"
-                  placeholder={singleType === 'fill_blank' ? 'Enter your answer...' : 'Write your answer...'}
+                  placeholder="Enter your answer..."
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
                   disabled={!!result}
-                  rows={singleType === 'writing' ? 5 : 2}
+                  rows={2}
                 />
               )}
             </>
           )}
 
           {result && (
-            <div className={`feedback ${result.is_correct ? 'correct-fb' : 'wrong-fb'}`}>
+            <div className={`feedback ${result.is_correct ? 'correct-fb' : 'wrong-fb'}`} style={{ marginTop: '14px', display: 'flex', gap: '10px', padding: '12px', borderRadius: '8px' }}>
               <div className="feedback-icon">{result.is_correct ? '✅' : '❌'}</div>
               <div>
-                <div className="feedback-title">{result.is_correct ? `Correct! +${result.xp_gained} XP` : 'Incorrect'}</div>
+                <div className="feedback-title" style={{ fontWeight: 700 }}>{result.is_correct ? `Correct! +${result.xp_gained} XP` : 'Incorrect'}</div>
                 {!result.is_correct && <div className="feedback-answer">Answer: <strong>{result.correct_answer}</strong></div>}
-                {result.explanation && <div className="feedback-explain">{result.explanation}</div>}
+                {result.explanation && <div className="feedback-explain" style={{ marginTop: '4px', color: 'var(--text2)' }}>💡 {result.explanation}</div>}
               </div>
             </div>
           )}
@@ -894,13 +932,7 @@ export default function Practice() {
           )
         ) : !result ? (
           <button className="btn btn-primary" onClick={handleSingleSubmit} disabled={submitting || !answer.trim()}>
-            {submitting ? (
-              <>
-                <span className="spinner" />Grading...
-              </>
-            ) : (
-              'Submit'
-            )}
+            {submitting ? 'Grading...' : 'Submit'}
           </button>
         ) : (
           <button className="btn btn-primary" onClick={handleSingleNext}>
