@@ -1,80 +1,123 @@
-/* Icon nhỏ lại */
-.practice-main-logo {
-    width: 72px !important;
-    height: 72px !important;
+/* ─────────────────────────────────────────────────────────────
+   ▶ CẤU HÌNH CSS BỔ TRỢ CHO WORKSPACE PRACTICE (ĐỒNG BỘ STYLE REVIEW)
+   ───────────────────────────────────────────────────────────── */
+
+/* Khung bọc danh sách số câu hỏi Q1, Q2, Q3 chống co rúm */
+.questions-grid-header {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
-/* Q grid có thể click */
 .question-grid-item.clickable {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    border: 2px solid var(--sky2) !important;
+    background: #ffffff;
+    color: var(--text2);
+    font-weight: 700;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
+
 .question-grid-item.clickable:hover {
-    border-color: var(--ocean);
-    background: var(--ice);
+    border-color: var(--ocean) !important;
+    background: var(--sky) !important;
+    color: var(--ocean);
 }
+
+/* Thao tác Active khi click chọn câu hỏi trong Grid */
 .question-grid-item.active-q {
     border-color: var(--ocean) !important;
     background: var(--ocean) !important;
-    color: white !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--ocean) 30%, transparent);
 }
 
-/* Màu option sau khi check */
-.option-selection-btn.opt-correct {
+/* Thao tác trạng thái đã điền đáp án */
+.question-grid-item.answered {
+    background: color-mix(in srgb, var(--ocean) 10%, #ffffff);
+    border-color: color-mix(in srgb, var(--ocean) 40%, #ffffff) !important;
+}
+
+/* Gợi ý nhỏ dưới lưới câu hỏi */
+.step-hint {
+    font-size: 12.5px;
+    color: var(--text3);
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* Định dạng khối văn bản đoạn văn đọc hiểu (Part 6 & Part 7) */
+.passage-display-box {
+    background: #ffffff;
+    border: 2px solid var(--sky2);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow1);
+}
+
+.passage-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ocean);
+    background: var(--sky);
+    padding: 6px 14px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+/* Các tùy chọn nút đáp án sau khi bấm Check Answer */
+.choice.opt-correct {
     border-color: #10b981 !important;
-    background: rgba(52,211,153,0.12) !important;
+    background: rgba(16, 185, 129, 0.08) !important;
     color: #065f46 !important;
 }
-.option-selection-btn.opt-wrong {
+
+.choice.opt-correct .choice-letter {
+    background: #10b981 !important;
+    color: #ffffff !important;
+}
+
+.choice.opt-wrong {
     border-color: #ef4444 !important;
-    background: rgba(248,113,113,0.12) !important;
+    background: rgba(239, 68, 68, 0.08) !important;
     color: #7f1d1d !important;
 }
 
-/* Feedback header với icon */
+.choice.opt-wrong .choice-letter {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+}
+
+/* Header khu vực thông báo đúng sai */
 .feedback-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-weight: 700;
+    font-weight: 800;
+    font-size: 15px;
 }
+
 .feedback-icon {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     object-fit: contain;
 }
 
-/* AI icon trong header */
-.ai-head-icon {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    border-radius: 50%;
-}
-
-/* AI icon trong bubble */
-.ai-bubble-icon {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-    border-radius: 50%;
-    flex-shrink: 0;
-    align-self: flex-end;
-    margin-right: 6px;
-}
-
-/* Passage header */
-.passage-header {
+/* Định dạng thanh điều hướng chuyển câu ở footer card */
+.practice-footer-actions {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-.passage-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--navy2);
-    background: var(--sky);
-    padding: 4px 12px;
-    border-radius: 20px;
+    gap: 10px;
+    margin-top: 20px;
+    border-top: 1px solid var(--sky2);
+    padding-top: 16px;
 }

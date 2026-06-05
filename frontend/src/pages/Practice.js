@@ -1,32 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { questionApi } from '../api/client';
-import './Practice.css';
+import { useToast } from '../context/ToastContext';
+import './Review.css'; // 🌟 Đồng bộ 100% các class CSS (.review-entry, .choice, .review-main-card...)
 
-// 🌟 Đã chuyển đổi toàn bộ icon sang dạng chuỗi tĩnh để triệt tiêu lỗi "Module not found" của Vercel
-const IMG_GRAMMAR_ICON = "/iconapp/gammaravt.png";
-const IMG_TESTTIME_ICON = "/iconapp/testtime.png";
-const IMG_VOCAB_ICON = "/iconapp/vocabavt.png";
-const IMG_PENWIN_ICON = "/iconapp/avt.png";
-const IMG_AI_ICON = "/iconapp/AItutoravt.png";
-const IMG_CORRECT_ICON = "/iconapp/usercorrect.png";
-const IMG_INCORRECT_ICON = "/iconapp/userincorrect.png";
+const normalize = (value) => String(value ?? '').trim().toLowerCase();
 
 export default function Practice() {
+    const toast = useToast();
+
+    // State cấu hình cấu phần ban đầu
     const [selectedPart, setSelectedPart] = useState(5);
     const [questionCount, setQuestionCount] = useState(10);
     const [isStarted, setIsStarted] = useState(false);
+    
+    // State dữ liệu câu hỏi từ Backend Postgres
     const [questions, setQuestions] = useState([]);
     const [passages, setPassages] = useState([]);
     const [currentPassageIndex, setCurrentPassageIndex] = useState(0);
-    const [userAnswers, setUserAnswers] = useState({});
-    const [checkedQuestions, setCheckedQuestions] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [loading, setLoading] = useState(false);
+
+    // State quản lý bài làm (Lưu trữ đáp án hàng loạt)
+    const [userAnswers, setUserAnswers] = useState({}); // { questionId: 'A' hoặc 'text' }
+    const [checkedQuestions, setCheckedQuestions] = useState({}); // { questionId: resultObj }
+
+    // State AI Tutor Assist tích hợp gọn gàng trong Card dưới câu hỏi
     const [aiMessages, setAiMessages] = useState([]);
     const [aiInput, setAiInput] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const threadEndRef = useRef(null);
+
+    // Đường dẫn ảnh tĩnh public để Vercel không bao giờ báo lỗi sập build module
+    const IMG_GRAMMAR_ICON = "/iconapp/gammaravt.png";
+    const IMG_TESTTIME_ICON = "/iconapp/testtime.png";
+    const IMG_VOCAB_ICON = "/iconapp/vocabavt.png";
+    const IMG_PENWIN_ICON = "/iconapp/avt.png";
+    const IMG_AI_ICON = "/iconapp/AItutoravt.png";
+    const IMG_CORRECT_ICON = "/iconapp/usercorrect.png";
+    const IMG_INCORRECT_ICON = "/iconapp/userincorrect.png";
 
     useEffect(() => {
         if (threadEndRef.current) {
@@ -34,29 +45,21 @@ export default function Practice() {
         }
     }, [aiMessages]);
 
-    // Parse options từ nhiều format backend có thể trả về
-    const parseOptions = (question) => {
-        if (!question) return {};
-        if (typeof question.options === 'string') {
-            try { return JSON.parse(question.options); } catch { return {}; }
-        }
-        if (typeof question.options === 'object' && question.options !== null) {
-            return question.options;
-        }
-        return {};
-    };
+    // Tự động reset index câu hỏi nhỏ khi đổi khối đoạn văn
+    useEffect(() => {
+        setCurrentQuestionIndex(0);
+    }, [currentPassageIndex]);
 
     const handleStartPractice = async () => {
         setLoading(true);
-        setError(null);
         try {
             const response = await questionApi.startPractice(
                 'reading', parseInt(questionCount), parseInt(selectedPart)
             );
+            
             if (response?.passages?.length > 0) {
                 setPassages(response.passages);
                 setQuestions([]);
-                setCurrentPassageIndex(0);
             } else {
                 setQuestions(response?.questions || []);
                 setPassages([]);
@@ -65,100 +68,106 @@ export default function Practice() {
             setAiMessages([]);
             setUserAnswers({});
             setCheckedQuestions({});
+            setCurrentPassageIndex(0);
             setCurrentQuestionIndex(0);
         } catch (err) {
-            setError('Failed to fetch questions. Please try again!');
+            if (toast && toast.error) toast.error('Không thể tải câu hỏi từ hệ thống!');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSubmitAnswer = async (questionId) => {
+    // Lấy danh sách câu hỏi đang hiển thị trên màn hình hiện tại
+    const activeQuestions = useMemo(() => {
+        return passages.length > 0 ? (passages[currentPassageIndex]?.questions || []) : questions;
+    }, [passages, questions, currentPassageIndex]);
+
+    // Hàm nộp đáp án hàng loạt hoặc check đơn lẻ
+    const handleCheckAnswer = async (questionId) => {
         const answer = userAnswers[questionId];
         if (!answer) return;
+
         try {
             const response = await questionApi.submitAnswer(questionId, answer);
-            setCheckedQuestions(prev => ({ ...prev, [questionId]: response }));
+            setCheckedQuestions(prev => ({
+                ...prev,
+                [questionId]: response
+            }));
         } catch (err) {
-            console.error('Submit answer failed:', err);
+            console.error('Nộp bài lỗi:', err);
         }
     };
 
     const handleSendAiMessage = async (textToSend) => {
         const msg = textToSend || aiInput;
         if (!msg.trim()) return;
+
         setAiMessages(prev => [...prev, { sender: 'user', text: msg }]);
         if (!textToSend) setAiInput('');
         setAiLoading(true);
+
         try {
             const currentQ = activeQuestions[currentQuestionIndex];
             const context = currentQ ? `Câu hỏi: "${currentQ.content}"` : '';
-            const res = await questionApi.askAI
-                ? await questionApi.askAI(msg, context)
-                : null;
+            const res = questionApi.askAI ? await questionApi.askAI(msg, context) : null;
+            
             setTimeout(() => {
-                setAiMessages(prev => [...prev, {
-                    sender: 'ai',
-                    text: res?.answer || 'Penwin AI Assist đã nhận được câu hỏi! 🐾'
+                setAiMessages(prev => [...prev, { 
+                    sender: 'ai', 
+                    text: res?.answer || 'Penwin AI Tutor đã ghi nhận câu hỏi ngữ pháp của bạn! 🐾' 
                 }]);
                 setAiLoading(false);
-            }, 800);
+            }, 600);
         } catch {
             setAiLoading(false);
         }
     };
 
-    const activeQuestions = passages.length > 0
-        ? (passages[currentPassageIndex]?.questions || [])
-        : questions;
-    const currentQuestion = activeQuestions[currentQuestionIndex];
-
-    // ── SETUP SCREEN ──
+    // ─────────────────────────────────────────────────────────────
+    // 🎴 1. MÀN HÌNH CHÍNH CHỌN PART (Hình 1 - image_c2e0cb.jpg)
+    // ─────────────────────────────────────────────────────────────
     if (!isStarted) {
         return (
-            <div className="practice-page fade-up">
-                <div className="practice-header-card card">
-                    <div>
-                        <div className="section-title">TOEIC Reading Practice</div>
-                        <p className="section-subtitle">Chọn phần bài thi và số câu hỏi để bắt đầu luyện tập.</p>
-                    </div>
-                    <span className="badge badge-blue">Ready to practice</span>
+            <div className="fade-up review-entry">
+                <div className="page-header">
+                    <h1 className="page-title">▶ Practice</h1>
+                    <p className="page-sub">Choose TOEIC Reading part and question count to begin</p>
                 </div>
 
-                <div className="practice-form-card card">
-                    <label className="form-label">TOEIC Reading Part</label>
-                    <div className="part-picker">
-                        {[
-                            { part: 5, icon: IMG_GRAMMAR_ICON, label: 'Part 5', sub: 'Incomplete Sentences' },
-                            { part: 6, icon: IMG_TESTTIME_ICON, label: 'Part 6', sub: 'Text Completion' },
-                            { part: 7, icon: IMG_VOCAB_ICON, label: 'Part 7', sub: 'Reading Comprehension' },
-                        ].map(({ part, icon, label, sub }) => (
-                            <button
-                                key={part}
-                                className={`part-pick-btn ${selectedPart === part ? 'active' : ''}`}
-                                onClick={() => setSelectedPart(part)}
-                            >
-                                <img src={icon} alt={label} />
-                                <span>{label}</span>
-                                <span className="part-pick-sub">{sub}</span>
-                            </button>
-                        ))}
-                    </div>
+                <div style={{ margin: '20px 0 10px 0', fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', textAlign: 'left' }}>
+                    TOEIC Reading Part
+                </div>
 
-                    <div className="slider-container">
-                        <label className="form-label">
-                            QUESTION COUNT: <span className="count-highlight">{questionCount}</span>
-                        </label>
-                        <input
-                            type="range" min="5" max="30" step="5" value={questionCount}
-                            onChange={(e) => setQuestionCount(e.target.value)}
-                            className="question-slider"
-                        />
-                    </div>
+                <div className="review-type-grid">
+                    <button className={`card review-type-card ${selectedPart === 5 ? 'active' : ''}`} style={{ border: selectedPart === 5 ? '2px solid #2196b0' : '' }} onClick={() => setSelectedPart(5)}>
+                        <img src={IMG_GRAMMAR_ICON} alt="Part 5" className="feedback-icon" style={{ marginBottom: '8px' }} />
+                        <h2>Part 5</h2>
+                        <p>Incomplete Sentences</p>
+                    </button>
 
-                    {error && <p className="error-text">❌ {error}</p>}
+                    <button className={`card review-type-card ${selectedPart === 6 ? 'active' : ''}`} style={{ border: selectedPart === 6 ? '2px solid #2196b0' : '' }} onClick={() => setSelectedPart(6)}>
+                        <img src={IMG_TESTTIME_ICON} alt="Part 6" className="feedback-icon" style={{ marginBottom: '8px' }} />
+                        <h2>Part 6</h2>
+                        <p>Text Completion</p>
+                    </button>
 
-                    <button onClick={handleStartPractice} disabled={loading} className="btn btn-primary start-practice-btn">
+                    <button className={`card review-type-card ${selectedPart === 7 ? 'active' : ''}`} style={{ border: selectedPart === 7 ? '2px solid #2196b0' : '' }} onClick={() => setSelectedPart(7)}>
+                        <img src={IMG_VOCAB_ICON} alt="Part 7" className="feedback-icon" style={{ marginBottom: '8px' }} />
+                        <h2>Part 7</h2>
+                        <p>Reading Comprehension</p>
+                    </button>
+                </div>
+
+                <div className="card review-main-card" style={{ marginTop: '20px', padding: '24px', textAlign: 'left' }}>
+                    <label style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>
+                        QUESTION COUNT: <span style={{ color: '#2196b0' }}>{questionCount}</span>
+                    </label>
+                    <input 
+                        type="range" min="5" max="30" step="5" value={questionCount} 
+                        onChange={(e) => setQuestionCount(e.target.value)}
+                        style={{ width: '100%', accentColor: '#2196b0', marginTop: '10px' }}
+                    />
+                    <button onClick={handleStartPractice} disabled={loading} className="btn btn-primary" style={{ marginTop: '24px', width: '100%', background: '#2196b0', border: 'none', padding: '12px', fontWeight: 700 }}>
                         {loading ? 'Loading Questions...' : `▶ Start ${questionCount} questions - Part ${selectedPart}`}
                     </button>
                 </div>
@@ -166,246 +175,228 @@ export default function Practice() {
         );
     }
 
-    // ── PRACTICE SCREEN ──
+    // ─────────────────────────────────────────────────────────────
+    // 📝 2. MÀN HÌNH WORKSPACE LÀM BÀI (ĐỒNG BỘ STYLE REVIEW THEO HÌNH 2, 3, 4, 5)
+    // ─────────────────────────────────────────────────────────────
     return (
-        <div className="practice-page practice-screen-layout fade-up">
+        <div className="fade-up review-mode-wrap">
+            
+            {/* Header hàng đợi trạng thái tiến độ bài làm */}
+            <div className="review-queue-header">
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <span className="badge badge-blue">Reading</span>
+                    <span className="badge badge-gray">Part {selectedPart}</span>
+                    {selectedPart === 5 && <span className="badge badge-orange">fill blank</span>}
+                    {passages.length > 0 && <span className="badge badge-orange">{currentPassageIndex + 1} / {passages.length} passages</span>}
+                </div>
+                <span className="badge badge-gray">✓ 0</span>
+            </div>
 
-            {/* CỘT ĐỀ THI */}
-            <div className="questions-column">
-
-                {/* PASSAGE (Part 6/7) */}
-                {passages.length > 0 && passages[currentPassageIndex] && (
-                    <div className="passage-display-box">
-                        <div className="passage-header">
-                            <span className="passage-label">📄 Passage {currentPassageIndex + 1} / {passages.length}</span>
-                        </div>
-                        <div className="passage-text-content">
-                            {passages[currentPassageIndex].passage}
-                        </div>
-                        {/* Điều hướng passage */}
-                        <div className="passage-navigation-bar">
-                            <button className="btn btn-secondary btn-sm"
-                                disabled={currentPassageIndex === 0}
-                                onClick={() => { setCurrentPassageIndex(p => p - 1); setCurrentQuestionIndex(0); }}>
-                                ◀ Prev Passage
-                            </button>
-                            <button className="btn btn-secondary btn-sm"
-                                disabled={currentPassageIndex === passages.length - 1}
-                                onClick={() => { setCurrentPassageIndex(p => p + 1); setCurrentQuestionIndex(0); }}>
-                                Next Passage ▶
-                            </button>
-                        </div>
+            {/* CARD 1: KHU VỰC HIỂN THỊ ĐOẠN VĂN (Dành cho Part 6 và Part 7 - Hình 4 & 5) */}
+            {passages.length > 0 && passages[currentPassageIndex] && (
+                <div className="card review-main-card" style={{ textAlign: 'left', padding: '24px' }}>
+                    <div className="passage-header">
+                        <span className="passage-label">📄 Passage</span>
                     </div>
-                )}
-
-                {/* KHUNG CÂU HỎI */}
-                <div className="practice-questions-container">
-
-                    <img src={IMG_PENWIN_ICON} alt="Penwin" className="practice-main-logo" />
-
-                    {/* Grid câu hỏi */}
-                    <div className="questions-grid-header">Questions in this passage</div>
-                    <div className="questions-grid-row">
-                        {activeQuestions.map((q, idx) => (
-                            <span
-                                key={q.id}
-                                onClick={() => setCurrentQuestionIndex(idx)}
-                                className={`question-grid-item clickable
-                                    ${currentQuestionIndex === idx ? 'active-q' : ''}
-                                    ${userAnswers[q.id] ? 'answered' : ''}
-                                    ${checkedQuestions[q.id] ? 'checked' : ''}`}
-                            >
-                                Q{idx + 1}
-                            </span>
-                        ))}
+                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '15px', color: '#334155' }}>
+                        {passages[currentPassageIndex].passage}
                     </div>
+                    {/* Điều hướng chuyển đoạn văn */}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                        <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px' }} disabled={currentPassageIndex === 0} onClick={() => setCurrentPassageIndex(p => p - 1)}>◀ Prev Passage</button>
+                        <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px' }} disabled={currentPassageIndex === passages.length - 1} onClick={() => setCurrentPassageIndex(p => p + 1)}>Next Passage ▶</button>
+                    </div>
+                </div>
+            )}
 
-                    <div className="step-hint">Hoàn thành câu hiện tại trước khi chuyển sang câu tiếp theo. Làm đúng +10xp.</div>
+            {/* CARD 2: KHU VỰC DANH SÁCH CÂU HỎI VÀ Ô CHỌN/ĐIỀN ĐÁP ÁN */}
+            <div className="card review-main-card" style={{ textAlign: 'left', padding: '24px' }}>
+                <img src={IMG_PENWIN_ICON} alt="Penwin logo" className="practice-main-logo" style={{ width: '72px', height: '72px', display: 'block', margin: '0 auto 12px auto' }} />
+                
+                <div className="questions-grid-header" style={{ fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>Questions in this passage</div>
+                
+                {/* GRID SỐ CÂU HỎI CÓ THỂ CLICK CHUYỂN TIÊU ĐIỂM (ĂN THEO CSS CỦA BẠN) */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                    {activeQuestions.map((q, idx) => (
+                        <span 
+                            key={q.id}
+                            onClick={() => setCurrentQuestionIndex(idx)}
+                            className={`question-grid-item clickable ${currentQuestionIndex === idx ? 'active-q' : ''} ${userAnswers[q.id] ? 'answered' : ''}`}
+                            style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                            Q{idx + 1}
+                        </span>
+                    ))}
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '20px' }}>For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.</div>
 
-                    {/* CARD CÂU HỎI */}
-                    <div className="practice-question-card">
-                        <div className="question-progress">
-                            <span>Câu {currentQuestionIndex + 1} / {activeQuestions.length}</span>
-                            <span>{checkedQuestions[currentQuestion?.id] ? '✅ Hoàn thành' : '⏳ Chưa xong'}</span>
-                        </div>
+                {/* HIỂN THỊ CHI TIẾT CÁC CÂU HỎI ĐỔ DỌC XUỐNG DƯỚI */}
+                {activeQuestions.map((q, index) => {
+                    const result = checkedQuestions[q.id];
+                    const isSelectedAnswered = !!userAnswers[q.id];
 
-                        {currentQuestion ? (
-                            <>
-                                <div className="question-title">Question {currentQuestionIndex + 1}</div>
-                                <div className="question-text">{currentQuestion.content}</div>
+                    return (
+                        <div key={q.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px', marginBottom: '20px' }}>
+                            <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '4px', fontSize: '15px' }}>Question {index + 1}</div>
+                            <div style={{ color: '#334155', marginBottom: '14px', fontSize: '15px', fontWeight: 500 }}>{q.content || "archive"}</div>
 
-                                {/* OPTIONS */}
-                                <div className="options-container">
-                                    {['A', 'B', 'C', 'D'].map((opt) => {
-                                        const parsed = parseOptions(currentQuestion);
-                                        const optionText =
-                                            parsed[opt] ||
-                                            parsed[opt.toLowerCase()] ||
-                                            currentQuestion[`option_${opt.toLowerCase()}`] ||
-                                            currentQuestion[opt];
+                            {/* ⌨️ NẾU LÀ PART 5: HIỂN THỊ Ô INPUT ĐIỀN CHỮ (Hình 2 - image_c2e089.jpg) */}
+                            {selectedPart === 5 ? (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <textarea
+                                        className="form-textarea"
+                                        rows={2}
+                                        value={userAnswers[q.id] || ''}
+                                        placeholder="Enter your answer..."
+                                        disabled={!!result}
+                                        onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                                    />
+                                </div>
+                            ) : (
+                                /* 🔘 NẾU LÀ PART 6 VÀ PART 7: HIỂN THỊ DANH SÁCH LỰA CHỌN A, B, C, D (Hình 4 & 5) */
+                                <div className="review-options" style={{ display: 'grid', gap: '10px', marginBottom: '14px' }}>
+                                    {['A', 'B', 'C', 'D'].map((opt, optIdx) => {
+                                        let optionText = q[`option_${opt.toLowerCase()}`] || q[opt];
                                         if (!optionText) return null;
 
-                                        const isSelected = userAnswers[currentQuestion.id] === opt;
-                                        const result = checkedQuestions[currentQuestion.id];
+                                        // Chuẩn hóa loại bỏ tiền tố trùng lặp đầu chữ nếu có
+                                        if (optionText.startsWith(opt) && optionText.length > 1) {
+                                            optionText = optionText.substring(1).replace(/^[.\s:-]+/, '').trim();
+                                        }
+
+                                        const isSelected = userAnswers[q.id] === opt;
                                         const isCorrectOpt = result && result.correct_answer === opt;
                                         const isWrongOpt = result && isSelected && !result.is_correct;
+
+                                        let optionStyleClass = "";
+                                        if (isCorrectOpt) optionStyleClass = "opt-correct";
+                                        else if (isWrongOpt) optionStyleClass = "opt-wrong";
 
                                         return (
                                             <button
                                                 key={opt}
                                                 disabled={!!result}
-                                                onClick={() => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: opt }))}
-                                                className={`option-selection-btn
-                                                    ${isSelected ? 'selected' : ''}
-                                                    ${isCorrectOpt ? 'opt-correct' : ''}
-                                                    ${isWrongOpt ? 'opt-wrong' : ''}`}
+                                                onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                                                className={`choice ${isSelected ? 'selected' : ''} ${optionStyleClass}`}
                                             >
-                                                <strong style={{ marginRight: 6 }}>{opt}</strong> {optionText}
+                                                <span className="choice-letter">{opt}</span>
+                                                {optionText}
                                             </button>
                                         );
                                     })}
                                 </div>
+                            )}
 
-                                {/* FEEDBACK */}
-                                <div className="answer-action-row">
-                                    {!checkedQuestions[currentQuestion.id] ? (
-                                        <>
-                                            <span className="please-choose-label">Chọn đáp án và bấm Check.</span>
-                                            <button
-                                                onClick={() => handleSubmitAnswer(currentQuestion.id)}
-                                                disabled={!userAnswers[currentQuestion.id]}
-                                                className="check-single-answer-btn"
-                                            >
-                                                Check Answer
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <div className={`answer-feedback-box ${checkedQuestions[currentQuestion.id].is_correct ? 'correct' : 'incorrect'}`}>
-                                            <div className="feedback-header">
-                                                <img
-                                                    src={checkedQuestions[currentQuestion.id].is_correct ? IMG_CORRECT_ICON : IMG_INCORRECT_ICON}
-                                                    alt="result"
-                                                    className="feedback-icon"
-                                                />
-                                                <span>
-                                                    {checkedQuestions[currentQuestion.id].is_correct
-                                                        ? 'Đúng rồi! +10 XP 🎉'
-                                                        : `Sai rồi! Đáp án đúng: ${checkedQuestions[currentQuestion.id].correct_answer}`}
-                                                </span>
-                                            </div>
-                                            {checkedQuestions[currentQuestion.id].explanation && (
-                                                <p className="explanation-paragraph">
-                                                    💡 {checkedQuestions[currentQuestion.id].explanation}
-                                                </p>
-                                            )}
+                            {/* DÒNG HÀNH ĐỘNG CHECK ĐÁP ÁN TỪNG CÂU */}
+                            <div className="answer-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                                <span className="please-choose-label" style={{ fontSize: '13px', color: '#64748b' }}>Chọn hoặc nhập đáp án và bấm Check.</span>
+                                {!result ? (
+                                    <button
+                                        onClick={() => handleCheckAnswer(q.id)}
+                                        disabled={!isSelectedAnswered}
+                                        className="check-single-answer-btn"
+                                        style={{ padding: '6px 14px', background: isSelectedAnswered ? '#2196b0' : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '6px', cursor: isSelectedAnswered ? 'pointer' : 'not-allowed', fontWeight: 600 }}
+                                    >
+                                        Check Answer
+                                    </button>
+                                ) : (
+                                    /* KHUNG PHẢN HỒI SAU KHI CHECK CHUẨN CARD VÀ ICON THEO CSS MỚI CỦA BẠN */
+                                    <div className={`answer-feedback-box ${result.is_correct ? 'correct' : 'incorrect'}`} style={{ width: '100%', marginTop: '10px', padding: '12px', borderRadius: '8px', background: result.is_correct ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', border: `1px solid ${result.is_correct ? '#10b981' : '#ef4444'}` }}>
+                                        <div className="feedback-header">
+                                            <img src={result.is_correct ? IMG_CORRECT_ICON : IMG_INCORRECT_ICON} alt="status icon" className="feedback-icon" />
+                                            <span style={{ color: result.is_correct ? '#065f46' : '#7f1d1d' }}>
+                                                {result.is_correct ? 'Đúng rồi! +10 XP 🎉' : `Sai rồi! Đáp án đúng: ${result.correct_answer}`}
+                                            </span>
                                         </div>
-                                    )}
-                                </div>
-                            </>
-                        ) : (
-                            <div className="empty-state">Không tìm thấy câu hỏi. Vui lòng thử lại.</div>
-                        )}
-                    </div>
+                                        {result.explanation && (
+                                            <p className="explanation-paragraph" style={{ margin: '6px 0 0 0', fontSize: '13.5px', color: '#475569', lineHeight: 1.5 }}>
+                                                💡 {result.explanation}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
 
-                    {/* FOOTER NAV */}
-                    <div className="practice-footer-actions">
-                        <button className="btn btn-secondary btn-sm"
-                            disabled={currentQuestionIndex === 0}
-                            onClick={() => setCurrentQuestionIndex(i => Math.max(i - 1, 0))}>
-                            ◀ Prev
-                        </button>
-                        <button className="btn btn-primary footer-action-submit-btn"
-                            disabled={!currentQuestion || !checkedQuestions[currentQuestion.id] || currentQuestionIndex === activeQuestions.length - 1}
-                            onClick={() => setCurrentQuestionIndex(i => Math.min(i + 1, activeQuestions.length - 1))}>
-                            Next ▶
-                        </button>
-                        <button className="btn btn-secondary footer-action-stop-btn"
-                            onClick={() => setIsStarted(false)}>
-                            Stop
-                        </button>
-                    </div>
+                {/* HÀNG KHUYẾN KHÍCH FOOTER DƯỚI CÙNG CARD */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }} className="practice-footer-actions">
+                    <button className="btn btn-secondary" style={{ padding: '8px 16px' }} disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex(i => i - 1)}>◀ Prev</button>
+                    <button className="btn btn-primary footer-action-submit-btn" style={{ padding: '8px 16px', background: '#2196b0', border: 'none' }} disabled={currentQuestionIndex === activeQuestions.length - 1} onClick={() => setCurrentQuestionIndex(i => i + 1)}>Next ▶</button>
+                    <button className="btn btn-secondary footer-action-stop-btn" style={{ padding: '8px 16px' }} onClick={() => setIsStarted(false)}>Stop</button>
                 </div>
             </div>
 
-            {/* CỘT AI ASSIST */}
-            <div className="ai-assist-column">
-                <div className="practice-ai-assist">
-                    <div className="practice-ai-head">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <img src={IMG_AI_ICON} alt="AI" className="ai-head-icon" />
-                            <div>
-                                <div className="practice-ai-title">Penwin AI Assist</div>
-                                <div className="practice-ai-sub">Hỏi AI về từ vựng hoặc ngữ cảnh bài làm!</div>
-                            </div>
-                        </div>
-                        <div className="practice-ai-context">Part {selectedPart}</div>
-                    </div>
-
-                    <div className="practice-ai-thread">
-                        {aiMessages.length === 0 ? (
-                            <div className="practice-ai-empty">Chọn gợi ý nhanh hoặc nhập câu hỏi bên dưới!</div>
-                        ) : (
-                            aiMessages.map((m, i) => (
-                                <div key={i} className={`practice-ai-msg ${m.sender}`}>
-                                    {m.sender === 'ai' && (
-                                        <img src={IMG_AI_ICON} alt="AI" className="ai-bubble-icon" />
-                                    )}
-                                    <div className="practice-ai-bubble">{m.text}</div>
-                                </div>
-                            ))
-                        )}
-                        {aiLoading && (
-                            <div className="practice-ai-msg ai">
-                                <img src={IMG_AI_ICON} alt="AI" className="ai-bubble-icon" />
-                                <div className="practice-ai-bubble" style={{ color: '#94a3b8' }}>
-                                    Đang soạn câu trả lời... 🐾
-                                </div>
-                            </div>
-                        )}
-                        <div ref={threadEndRef} />
-                    </div>
-
-                    <div className="practice-ai-chips">
-                        {currentQuestion && (
-                            <button className="practice-ai-chip"
-                                onClick={() => handleSendAiMessage(`"${currentQuestion.content}" nghĩa là gì?`)}>
-                                ❓ Nghĩa từ này
-                            </button>
-                        )}
-                        <button className="practice-ai-chip"
-                            onClick={() => handleSendAiMessage('Giải thích cấu trúc ngữ pháp câu hỏi này.')}>
-                            💡 Giải thích cấu trúc
-                        </button>
-                        <button className="practice-ai-chip"
-                            onClick={() => handleSendAiMessage('Dịch câu hỏi/đoạn văn này sang tiếng Việt.')}>
-                            🇻🇳 Dịch câu này
-                        </button>
-                        <button className="practice-ai-chip"
-                            onClick={() => handleSendAiMessage('Chỉ ra các từ vựng khó trong bài này.')}>
-                            📚 Từ vựng khó
-                        </button>
-                    </div>
-
-                    <div className="practice-ai-input-row">
-                        <textarea
-                            className="practice-ai-input"
-                            placeholder="Nhập câu hỏi cho AI về bài làm..."
-                            value={aiInput}
-                            onChange={(e) => setAiInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSendAiMessage();
-                                }
-                            }}
-                        />
-                        <button className="btn btn-primary practice-ai-send"
-                            onClick={() => handleSendAiMessage()}
-                            disabled={aiLoading || !aiInput.trim()}>
-                            Ask AI
-                        </button>
+            {/* CARD 3: PHÂN HỆ PENWIN AI TUTOR ASSIST (TÍCH HỢP ĐẬM CHẤT THƯƠNG HIỆU - Hình 2) */}
+            <div className="card review-main-card" style={{ padding: '24px', textAlign: 'left' }}>
+                <div className="practice-ai-head" style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '14px' }}>
+                    <img src={IMG_AI_ICON} alt="AI" className="ai-head-icon" />
+                    <div>
+                        <div className="practice-ai-title" style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Penwin AI Assist</div>
+                        <div className="practice-ai-sub" style={{ fontSize: '12.5px', color: '#64748b' }}>Hỏi AI về từ vựng hoặc ngữ cảnh bài làm này nhé Ngân!</div>
                     </div>
                 </div>
+
+                {/* Khung hội thoại bong bóng chat cuộn mượt mà */}
+                <div className="practice-ai-thread" style={{ maxHeight: '180px', overflowY: 'auto', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {aiMessages.length === 0 ? (
+                        <div className="practice-ai-empty" style={{ fontSize: '13px', color: '#94a3b8', textStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>Chọn gợi ý nhanh hoặc nhập câu hỏi bên dưới!</div>
+                    ) : (
+                        aiMessages.map((m, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start', width: '100%' }}>
+                                <div style={{ background: m.sender === 'user' ? '#e0f2fe' : '#fff', color: '#1e293b', border: m.sender === 'ai' ? '1px solid #e2e8f0' : 'none', padding: '8px 12px', borderRadius: '12px', fontSize: '13.5px', maxWidth: '85%', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                                    {m.text}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                    {aiLoading && (
+                        <div style={{ fontSize: '13px', color: '#94a3b8' }}>🐾 Penwin AI đang biên soạn câu trả lời...</div>
+                    )}
+                    <div ref={threadEndRef} />
+                </div>
+
+                {/* Khối chip phím tắt hỏi nhanh */}
+                <div className="practice-ai-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                    <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Giải thích chi tiết cấu trúc ngữ pháp và quy tắc chọn từ câu hỏi này.')}>💡 Giải thích cấu trúc</button>
+                    <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Dịch giúp mình toàn bộ nội dung đoạn văn/câu hỏi hiện tại sang tiếng Việt.')}>🇻🇳 Dịch câu này</button>
+                    <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Tổng hợp các từ vựng core cốt lõi cần nhớ trong bài luyện tập này.')}>📚 Từ vựng khó</button>
+                </div>
+
+                {/* Khung nhập text chat */}
+                <div className="practice-ai-input-row" style={{ display: 'flex', gap: '8px' }}>
+                    <textarea
+                        className="practice-ai-input"
+                        placeholder="Nhập câu hỏi cho AI về bài làm..."
+                        value={aiInput}
+                        onChange={(e) => setAiInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendAiMessage();
+                            }
+                        }}
+                        style={{ flex: 1, height: '42px', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13.5px', resize: 'none' }}
+                    />
+                    <button 
+                        className="btn btn-primary practice-ai-send" 
+                        onClick={() => handleSendAiMessage()} 
+                        disabled={aiLoading || !aiInput.trim()}
+                        style={{ height: '42px', padding: '0 16px', background: '#475569', border: 'none', margin: 0 }}
+                    >
+                        Ask AI
+                    </button>
+                </div>
+            </div>
+
+            {/* DÒNG TIẾP TỤC FOOTER TRANG CHÍNH */}
+            <div className="review-actions-row">
+                <button className="btn btn-primary" style={{ background: '#2196b0', border: 'none' }} onClick={handleNextQuestion}>
+                    Next Question ▶
+                </button>
+                <button className="btn btn-ghost" onClick={() => setIsStarted(false)}>Đổi loại luyện tập</button>
             </div>
         </div>
     );
