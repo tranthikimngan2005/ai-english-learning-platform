@@ -4,7 +4,6 @@ import hashlib
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.user import (
@@ -62,11 +61,16 @@ def list_questions(
     q = db.query(Question)
     if skill:
         q = q.filter(Question.skill == skill)
+    
+    all_qs = q.order_by(Question.created_at.desc()).all()
+    
     if level:
-        # Sửa ép kiểu so sánh Enum tương thích với PostgreSQL
-        level_val = level.name if hasattr(level, 'name') else level
-        q = q.filter(or_(Question.level == level, Question.level == level_val))
-    return q.order_by(Question.created_at.desc()).all()
+        target_str = level.name if hasattr(level, 'name') else str(level)
+        all_qs = [
+            item for item in all_qs 
+            if (hasattr(item.level, 'name') and item.level.name == target_str) or str(item.level) == target_str
+        ]
+    return all_qs
 
 
 @router.post("", response_model=QuestionOut, status_code=201)
@@ -126,7 +130,6 @@ def recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return due review questions based on the user's past mistakes."""
     return get_recommendations(current_user.id, db)
 
 
@@ -140,10 +143,6 @@ def start_practice(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Returns N approved questions for a skill, adaptive by user's current level.
-    Mix: 70% current level, 30% one level below (for confidence) or above (for stretch).
-    """
     profile = (
         db.query(SkillProfile)
         .filter(SkillProfile.user_id == current_user.id, SkillProfile.skill == payload.skill)
@@ -151,6 +150,7 @@ def start_practice(
     )
     current_level = profile.current_level if profile else LevelEnum.A1
 
+    # Lấy câu hỏi thô theo skill và status trước để Postgres không bao giờ crash
     base_query = (
         db.query(Question)
         .filter(
@@ -162,12 +162,18 @@ def start_practice(
     if payload.part is not None:
         base_query = base_query.filter(Question.part == payload.part)
 
-    # 🌟 ĐOẠN SỬA LỖI CHÍ MẠNG: Đảm bảo tương thích so sánh Enum cả kiểu Object lẫn kiểu Chuỗi/Số trong Postgres
-    level_name = current_level.name if hasattr(current_level, 'name') else current_level
-    level_questions = base_query.filter(or_(Question.level == current_level, Question.level == level_name)).all()
+    all_candidates = base_query.all()
+
+    # 🌟 GIẢI PHÁP TỐI CAO: Lọc level hoàn toàn bằng mã Python để triệt tiêu lỗi cú pháp Integer của Postgres
+    target_lv_name = current_level.name if hasattr(current_level, 'name') else str(current_level)
+    
+    level_questions = [
+        q for q in all_candidates
+        if (hasattr(q.level, 'name') and q.level.name == target_lv_name) or str(q.level) == target_lv_name
+    ]
     
     if len(level_questions) < payload.count:
-        pool = list({q.id: q for q in level_questions + base_query.all()}.values())
+        pool = list({q.id: q for q in level_questions + all_candidates}.values())
     else:
         pool = level_questions
 
@@ -247,7 +253,6 @@ def submit_answer(
             profile.questions_correct += 1
 
         if level_up_check(profile.questions_done, profile.questions_correct):
-            # Ép kiểu an toàn khi gọi hàm xử lý nâng cấp cấp độ
             current_lv_val = profile.current_level.value if hasattr(profile.current_level, 'value') else profile.current_level
             new_level = next_level(current_lv_val)
             if new_level:
