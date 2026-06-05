@@ -17,13 +17,16 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# 🌟 CẤU HÌNH CORS MỞ RỘNG: Cho phép tất cả các bên truy cập để tránh lỗi Blocked by CORS trên Vercel/Render
+# 🌟 CẤU HÌNH CORS ĐỒNG BỘ: Cho phép tên miền Vercel truy cập kèm theo mã bảo mật Token (Credentials)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],         # Mở thông mạch 100% cho mọi domain gọi vào
-    allow_credentials=False,     # Bắt buộc phải là False khi allow_origins=["*"] để FastAPI không bị crash mã nguồn
-    allow_methods=["*"],         # Cho phép tất cả các phương thức GET, POST, PUT, DELETE
-    allow_headers=["*"],         # Cho phép tất cả các loại Header truyền lên
+    allow_origins=[
+        "http://localhost:3000",
+        "https://ai-english-learning-platform-neon.vercel.app"
+    ],  # Cho phép chính xác domain Frontend local và production gọi vào
+    allow_credentials=True,   # BẮT BUỘC PHẢI LÀ TRUE để hệ thống xác thực Token không bị sập nguồn lỗi 500
+    allow_methods=["*"],      # Cho phép tất cả các phương thức GET, POST, PUT, DELETE
+    allow_headers=["*"],      # Cho phép tất cả các loại Header truyền lên (bao gồm Authorization)
 )
 
 # Đăng ký các Router hệ thống
