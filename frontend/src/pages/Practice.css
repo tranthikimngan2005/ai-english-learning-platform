@@ -1,559 +1,80 @@
-/* --- TOÀN BỘ CẤU HÌNH CSS CHUẨN CHO TRANG PRACTICE --- */
-
-.practice-config {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-/* Khung chọn TOEIC Parts dạng Grid chia đều 3 cột */
-.part-picker {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-top: 12px;
-}
-
-.part-pick-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 16px;
-    background: #ffffff;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-height: 180px;
-}
-
-.part-pick-btn:hover {
-    border-color: #0ea5e9;
-    background-color: #f8fafc;
-    transform: translateY(-2px);
-}
-
-.part-pick-btn.active {
-    border-color: #0ea5e9;
-    background-color: #f0f9ff;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
-}
-
-/* Khóa cứng kích thước hình ảnh của các nút Part */
-.part-pick-btn img {
-    width: 64px !important;
-    height: 64px !important;
-    object-fit: contain;
-    margin-bottom: 12px !important;
-}
-
-.part-pick-btn span {
-    font-size: 15px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 4px;
-    text-align: center;
-}
-
-.part-pick-sub {
-    font-size: 11px;
-    color: #64748b;
-    font-weight: 500;
-    text-align: center;
-    display: block;
-    line-height: 1.3;
-}
-
-/* --- PHÂN HỆ AI ASSIST ĐẸP CHUẨN KHÔNG VỠ LAYOUT --- */
-.practice-ai-assist {
-    margin-top: 28px;
-    padding: 20px;
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    text-align: left;
-}
-
-.practice-ai-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 14px;
-    gap: 12px;
-}
-
-.practice-ai-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 4px;
-}
-
-.practice-ai-sub {
-    font-size: 13px;
-    color: #64748b;
-    line-height: 1.4;
-}
-
-.practice-ai-context {
-    font-size: 12px;
-    font-weight: 700;
-    background-color: #e0f2fe;
-    color: #0369a1;
-    padding: 4px 10px;
-    border-radius: 20px;
-    white-space: nowrap;
-}
-
-/* Khung chứa các nút gợi ý nhanh */
-.practice-ai-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.practice-ai-chip {
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
-    color: #475569;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.practice-ai-chip:hover:not(:disabled) {
-    background-color: #f1f5f9;
-    border-color: #94a3b8;
-    color: #1e293b;
-}
-
-/* Khung hội thoại hiển thị nội dung chat */
-.practice-ai-thread {
-    max-height: 220px;
-    overflow-y: auto;
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.practice-ai-empty {
-    font-size: 13px;
-    color: #94a3b8;
-    text-align: center;
-    padding: 16px 0;
-    font-style: italic;
-}
-
-.practice-ai-msg {
-    display: flex;
-    width: 100%;
-}
-
-.practice-ai-msg.user {
-    justify-content: flex-end;
-}
-
-.practice-ai-msg.ai {
-    justify-content: flex-start;
-}
-
-.practice-ai-bubble {
-    padding: 8px 14px;
-    border-radius: 12px;
-    font-size: 13.5px;
-    line-height: 1.5;
-    max-width: 85%;
-    word-break: break-word;
-}
-
-.practice-ai-msg.user .practice-ai-bubble {
-    background-color: #0ea5e9;
-    color: #ffffff;
-    border-bottom-right-radius: 2px;
-}
-
-.practice-ai-msg.ai .practice-ai-bubble {
-    background-color: #f1f5f9;
-    color: #334155;
-    border-bottom-left-radius: 2px;
-    text-align: left;
-}
-
-/* Thanh nhập liệu và nút bấm */
-.practice-ai-input-row {
-    display: flex;
-    gap: 12px;
-    align-items: flex-end;
-}
-
-.practice-ai-input {
-    flex: 1;
-    height: 46px;
-    padding: 10px 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 13.5px;
-    resize: none;
-    font-family: inherit;
-    line-height: 1.4;
-}
-
-.practice-ai-input:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
-}
-
-.practice-ai-send {
-    height: 46px;
-    padding: 0 18px;
-    font-weight: 700;
-    border-radius: 12px;
-    transition: all 0.2s ease;
-    letter-spacing: 0.01em;
-    min-width: 112px;
-}
-
-.practice-ai-send:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.practice-page {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 24px 20px 40px;
-}
-
-.practice-header-card,
-.practice-form-card {
-    margin-bottom: 22px;
-}
-
-.practice-form-card {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.section-subtitle {
-    color: #475569;
-    font-size: 14px;
-    margin-top: 8px;
-    line-height: 1.7;
-    max-width: 660px;
-}
-
-.practice-screen-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 380px);
-    gap: 24px;
-    align-items: start;
-}
-
-.questions-column,
-.ai-assist-column {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.practice-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 18px;
-}
-
-.passage-display-box {
-    background: white;
-    border: 2px solid var(--sky2);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    margin-bottom: 20px;
-}
-
-.passage-display-box h4 {
-    margin-bottom: 12px;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--navy2);
-}
-
-.passage-text-content {
-    white-space: pre-wrap;
-    color: var(--text2);
-    line-height: 1.75;
-}
-
-.practice-questions-container {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    padding: 24px;
-    background: white;
-    border: 2px solid var(--sky2);
-    border-radius: var(--radius);
-}
-
+/* Icon nhỏ lại */
 .practice-main-logo {
-    width: 116px;
-    height: 116px;
+    width: 72px !important;
+    height: 72px !important;
+}
+
+/* Q grid có thể click */
+.question-grid-item.clickable {
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.question-grid-item.clickable:hover {
+    border-color: var(--ocean);
+    background: var(--ice);
+}
+.question-grid-item.active-q {
+    border-color: var(--ocean) !important;
+    background: var(--ocean) !important;
+    color: white !important;
+}
+
+/* Màu option sau khi check */
+.option-selection-btn.opt-correct {
+    border-color: #10b981 !important;
+    background: rgba(52,211,153,0.12) !important;
+    color: #065f46 !important;
+}
+.option-selection-btn.opt-wrong {
+    border-color: #ef4444 !important;
+    background: rgba(248,113,113,0.12) !important;
+    color: #7f1d1d !important;
+}
+
+/* Feedback header với icon */
+.feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+}
+.feedback-icon {
+    width: 32px;
+    height: 32px;
     object-fit: contain;
-    margin: 0 auto;
 }
 
-.questions-grid-header {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--navy2);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+/* AI icon trong header */
+.ai-head-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 50%;
 }
 
-.questions-grid-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
+/* AI icon trong bubble */
+.ai-bubble-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 50%;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-right: 6px;
 }
 
-.question-grid-item {
-    min-width: 46px;
-    height: 46px;
-    background: var(--sky);
-    border: 1px solid var(--sky2);
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: var(--text2);
-}
-
-.question-grid-item.answered {
-    background: var(--ice);
-    border-color: var(--ocean);
-    color: var(--ocean2);
-}
-
-.question-grid-item.checked {
-    background: var(--ocean);
-    color: white;
-    border-color: var(--ocean2);
-}
-
-.part6-hint-text {
-    font-size: 13px;
-    color: var(--text3);
-    margin-top: 12px;
-}
-
-.single-question-block {
-    background: white;
-    border: 2px solid var(--sky2);
-    border-radius: var(--radius);
-    padding: 18px;
-    margin-top: 18px;
-}
-
-.question-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--navy2);
-    margin-bottom: 10px;
-}
-
-.question-text {
-    color: var(--text2);
-    line-height: 1.75;
-    margin-bottom: 16px;
-}
-
-.options-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.option-selection-btn {
-    flex: 1 1 calc(50% - 12px);
-    min-width: 136px;
-    text-align: left;
-    padding: 14px 16px;
-    background: white;
-    border: 1px solid var(--sky2);
-    border-radius: 14px;
-    color: var(--text);
-    cursor: pointer;
-    transition: all var(--trans);
-}
-
-.option-selection-btn.selected {
-    border-color: var(--ocean);
-    background: var(--ice);
-}
-
-.option-selection-btn:hover:not(:disabled) {
-    border-color: var(--ocean);
-    background: #f0fbff;
-}
-
-.option-selection-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.answer-action-row {
+/* Passage header */
+.passage-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-}
-
-.please-choose-label {
-    color: var(--text3);
-    font-size: 13px;
-}
-
-.check-single-answer-btn {
-    min-width: 140px;
-    padding: 10px 18px;
-    border-radius: var(--radius);
-    border: none;
-    background: var(--ocean);
-    color: white;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all var(--trans);
-}
-
-.check-single-answer-btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-}
-
-.check-single-answer-btn:not(:disabled):hover {
-    transform: translateY(-1px);
-}
-
-.answer-feedback-box {
-    width: 100%;
-    border-radius: 16px;
-    padding: 14px 16px;
-    font-size: 14px;
-}
-
-.answer-feedback-box.correct {
-    background: rgba(52,211,153,0.12);
-    border: 1px solid rgba(52,211,153,0.25);
-    color: #0f766e;
-}
-
-.answer-feedback-box.incorrect {
-    background: rgba(248,113,113,0.12);
-    border: 1px solid rgba(248,113,113,0.3);
-    color: #7f1d1d;
-}
-
-.explanation-paragraph {
-    margin-top: 10px;
-    color: var(--text3);
-    line-height: 1.65;
-}
-
-.passage-navigation-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 24px;
-}
-
-.passage-navigation-bar span {
-    color: var(--text3);
-    font-size: 14px;
-}
-
-.practice-footer-actions {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-top: 20px;
-    justify-content: flex-start;
-}
-
-.footer-action-stop-btn {
-    min-width: 140px;
-}
-
-.step-hint {
-    color: var(--text3);
-    font-size: 13px;
-    font-weight: 700;
-    margin-top: 16px;
-}
-
-.practice-question-card {
-    background: white;
-    border: 2px solid var(--sky2);
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    margin-top: 16px;
-}
-
-.question-progress {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 18px;
-    color: var(--text2);
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.question-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--navy);
     margin-bottom: 12px;
 }
-
-.question-text {
-    color: var(--text2);
-    line-height: 1.75;
-    margin-bottom: 18px;
+.passage-label {
+    font-size: 13px;
     font-weight: 700;
-}
-
-@media (max-width: 980px) {
-    .practice-screen-layout {
-        grid-template-columns: 1fr;
-    }
-    .ai-assist-column {
-        order: -1;
-    }
-}
-
-@media (max-width: 720px) {
-    .part-picker {
-        grid-template-columns: 1fr;
-    }
-    .options-container {
-        flex-direction: column;
-    }
+    color: var(--navy2);
+    background: var(--sky);
+    padding: 4px 12px;
+    border-radius: 20px;
 }
