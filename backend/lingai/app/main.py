@@ -1,10 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.core.config import settings
-from app.core.database import Base, engine
-from app.core.database import get_db
+from app.core.database import Base, engine, get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.routers import auth, users, lessons, questions, review, chat, admin, flashcards
@@ -19,22 +17,16 @@ app = FastAPI(
     version="1.0.0",
 )
 
-allowed_origins = [
-    origin.strip()
-    for origin in settings.FRONTEND_ORIGINS.split(',')
-    if origin.strip()
-]
-if not allowed_origins:
-    allowed_origins = ["http://localhost:3000"]
-
+# 🌟 CẤU HÌNH CORS MỞ RỘNG: Cho phép tất cả các bên truy cập để tránh lỗi Blocked by CORS trên Vercel/Render
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],         # Mở thông mạch 100% cho mọi domain gọi vào
+    allow_credentials=False,     # Bắt buộc phải là False khi allow_origins=["*"] để FastAPI không bị crash mã nguồn
+    allow_methods=["*"],         # Cho phép tất cả các phương thức GET, POST, PUT, DELETE
+    allow_headers=["*"],         # Cho phép tất cả các loại Header truyền lên
 )
 
+# Đăng ký các Router hệ thống
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(lessons.router)
