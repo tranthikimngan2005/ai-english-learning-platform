@@ -1,36 +1,36 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { questionApi } from '../api/client';
 import { useToast } from '../context/ToastContext';
-import './Review.css'; // 🌟 Đồng bộ 100% các class CSS (.review-entry, .choice, .review-main-card...)
+import './Review.css'; 
 
 const normalize = (value) => String(value ?? '').trim().toLowerCase();
 
 export default function Practice() {
     const toast = useToast();
 
-    // State cấu hình cấu phần ban đầu
+    // State cấu hình bài học
     const [selectedPart, setSelectedPart] = useState(5);
     const [questionCount, setQuestionCount] = useState(10);
     const [isStarted, setIsStarted] = useState(false);
     
-    // State dữ liệu câu hỏi từ Backend Postgres
+    // State dữ liệu câu hỏi
     const [questions, setQuestions] = useState([]);
     const [passages, setPassages] = useState([]);
     const [currentPassageIndex, setCurrentPassageIndex] = useState(0);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    // State quản lý bài làm (Lưu trữ đáp án hàng loạt)
-    const [userAnswers, setUserAnswers] = useState({}); // { questionId: 'A' hoặc 'text' }
-    const [checkedQuestions, setCheckedQuestions] = useState({}); // { questionId: resultObj }
+    // State quản lý bài làm
+    const [userAnswers, setUserAnswers] = useState({});
+    const [checkedQuestions, setCheckedQuestions] = useState({});
 
-    // State AI Tutor Assist tích hợp gọn gàng trong Card dưới câu hỏi
+    // State AI Tutor Assist
     const [aiMessages, setAiMessages] = useState([]);
     const [aiInput, setAiInput] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const threadEndRef = useRef(null);
 
-    // Đường dẫn ảnh tĩnh public để Vercel không bao giờ báo lỗi sập build module
+    // Đường dẫn ảnh tĩnh public
     const IMG_GRAMMAR_ICON = "/iconapp/gammaravt.png";
     const IMG_TESTTIME_ICON = "/iconapp/testtime.png";
     const IMG_VOCAB_ICON = "/iconapp/vocabavt.png";
@@ -45,7 +45,6 @@ export default function Practice() {
         }
     }, [aiMessages]);
 
-    // Tự động reset index câu hỏi nhỏ khi đổi khối đoạn văn
     useEffect(() => {
         setCurrentQuestionIndex(0);
     }, [currentPassageIndex]);
@@ -71,18 +70,16 @@ export default function Practice() {
             setCurrentPassageIndex(0);
             setCurrentQuestionIndex(0);
         } catch (err) {
-            if (toast && toast.error) toast.error('Không thể tải câu hỏi từ hệ thống!');
+            if (toast) toast('Không thể tải câu hỏi từ hệ thống!', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    // Lấy danh sách câu hỏi đang hiển thị trên màn hình hiện tại
     const activeQuestions = useMemo(() => {
         return passages.length > 0 ? (passages[currentPassageIndex]?.questions || []) : questions;
     }, [passages, questions, currentPassageIndex]);
 
-    // Hàm nộp đáp án hàng loạt hoặc check đơn lẻ
     const handleCheckAnswer = async (questionId) => {
         const answer = userAnswers[questionId];
         if (!answer) return;
@@ -124,7 +121,7 @@ export default function Practice() {
     };
 
     // ─────────────────────────────────────────────────────────────
-    // 🎴 1. MÀN HÌNH CHÍNH CHỌN PART (Hình 1 - image_c2e0cb.jpg)
+    // 🎴 1. MÀN HÌNH CHÍNH CHỌN PART
     // ─────────────────────────────────────────────────────────────
     if (!isStarted) {
         return (
@@ -176,12 +173,10 @@ export default function Practice() {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 📝 2. MÀN HÌNH WORKSPACE LÀM BÀI (ĐỒNG BỘ STYLE REVIEW THEO HÌNH 2, 3, 4, 5)
+    // 📝 2. MÀN HÌNH WORKSPACE LÀM BÀI
     // ─────────────────────────────────────────────────────────────
     return (
         <div className="fade-up review-mode-wrap">
-            
-            {/* Header hàng đợi trạng thái tiến độ bài làm */}
             <div className="review-queue-header">
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <span className="badge badge-blue">Reading</span>
@@ -192,7 +187,7 @@ export default function Practice() {
                 <span className="badge badge-gray">✓ 0</span>
             </div>
 
-            {/* CARD 1: KHU VỰC HIỂN THỊ ĐOẠN VĂN (Dành cho Part 6 và Part 7 - Hình 4 & 5) */}
+            {/* CARD 1: ĐOẠN VĂN ĐỌC HIỂN THỊ */}
             {passages.length > 0 && passages[currentPassageIndex] && (
                 <div className="card review-main-card" style={{ textAlign: 'left', padding: '24px' }}>
                     <div className="passage-header">
@@ -201,7 +196,6 @@ export default function Practice() {
                     <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '15px', color: '#334155' }}>
                         {passages[currentPassageIndex].passage}
                     </div>
-                    {/* Điều hướng chuyển đoạn văn */}
                     <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                         <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px' }} disabled={currentPassageIndex === 0} onClick={() => setCurrentPassageIndex(p => p - 1)}>◀ Prev Passage</button>
                         <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px' }} disabled={currentPassageIndex === passages.length - 1} onClick={() => setCurrentPassageIndex(p => p + 1)}>Next Passage ▶</button>
@@ -209,13 +203,12 @@ export default function Practice() {
                 </div>
             )}
 
-            {/* CARD 2: KHU VỰC DANH SÁCH CÂU HỎI VÀ Ô CHỌN/ĐIỀN ĐÁP ÁN */}
+            {/* CARD 2: CÂU HỎI VÀ ĐÁP ÁN */}
             <div className="card review-main-card" style={{ textAlign: 'left', padding: '24px' }}>
                 <img src={IMG_PENWIN_ICON} alt="Penwin logo" className="practice-main-logo" style={{ width: '72px', height: '72px', display: 'block', margin: '0 auto 12px auto' }} />
                 
                 <div className="questions-grid-header" style={{ fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>Questions in this passage</div>
                 
-                {/* GRID SỐ CÂU HỎI CÓ THỂ CLICK CHUYỂN TIÊU ĐIỂM (ĂN THEO CSS CỦA BẠN) */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
                     {activeQuestions.map((q, idx) => (
                         <span 
@@ -230,7 +223,6 @@ export default function Practice() {
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '20px' }}>For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.</div>
 
-                {/* HIỂN THỊ CHI TIẾT CÁC CÂU HỎI ĐỔ DỌC XUỐNG DƯỚI */}
                 {activeQuestions.map((q, index) => {
                     const result = checkedQuestions[q.id];
                     const isSelectedAnswered = !!userAnswers[q.id];
@@ -240,7 +232,6 @@ export default function Practice() {
                             <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '4px', fontSize: '15px' }}>Question {index + 1}</div>
                             <div style={{ color: '#334155', marginBottom: '14px', fontSize: '15px', fontWeight: 500 }}>{q.content || "archive"}</div>
 
-                            {/* ⌨️ NẾU LÀ PART 5: HIỂN THỊ Ô INPUT ĐIỀN CHỮ (Hình 2 - image_c2e089.jpg) */}
                             {selectedPart === 5 ? (
                                 <div style={{ marginBottom: '12px' }}>
                                     <textarea
@@ -254,13 +245,11 @@ export default function Practice() {
                                     />
                                 </div>
                             ) : (
-                                /* 🔘 NẾU LÀ PART 6 VÀ PART 7: HIỂN THỊ DANH SÁCH LỰA CHỌN A, B, C, D (Hình 4 & 5) */
                                 <div className="review-options" style={{ display: 'grid', gap: '10px', marginBottom: '14px' }}>
-                                    {['A', 'B', 'C', 'D'].map((opt, optIdx) => {
+                                    {['A', 'B', 'C', 'D'].map((opt) => {
                                         let optionText = q[`option_${opt.toLowerCase()}`] || q[opt];
                                         if (!optionText) return null;
 
-                                        // Chuẩn hóa loại bỏ tiền tố trùng lặp đầu chữ nếu có
                                         if (optionText.startsWith(opt) && optionText.length > 1) {
                                             optionText = optionText.substring(1).replace(/^[.\s:-]+/, '').trim();
                                         }
@@ -288,7 +277,6 @@ export default function Practice() {
                                 </div>
                             )}
 
-                            {/* DÒNG HÀNH ĐỘNG CHECK ĐÁP ÁN TỪNG CÂU */}
                             <div className="answer-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                                 <span className="please-choose-label" style={{ fontSize: '13px', color: '#64748b' }}>Chọn hoặc nhập đáp án và bấm Check.</span>
                                 {!result ? (
@@ -301,7 +289,6 @@ export default function Practice() {
                                         Check Answer
                                     </button>
                                 ) : (
-                                    /* KHUNG PHẢN HỒI SAU KHI CHECK CHUẨN CARD VÀ ICON THEO CSS MỚI CỦA BẠN */
                                     <div className={`answer-feedback-box ${result.is_correct ? 'correct' : 'incorrect'}`} style={{ width: '100%', marginTop: '10px', padding: '12px', borderRadius: '8px', background: result.is_correct ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', border: `1px solid ${result.is_correct ? '#10b981' : '#ef4444'}` }}>
                                         <div className="feedback-header">
                                             <img src={result.is_correct ? IMG_CORRECT_ICON : IMG_INCORRECT_ICON} alt="status icon" className="feedback-icon" />
@@ -321,7 +308,6 @@ export default function Practice() {
                     );
                 })}
 
-                {/* HÀNG KHUYẾN KHÍCH FOOTER DƯỚI CÙNG CARD */}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }} className="practice-footer-actions">
                     <button className="btn btn-secondary" style={{ padding: '8px 16px' }} disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex(i => i - 1)}>◀ Prev</button>
                     <button className="btn btn-primary footer-action-submit-btn" style={{ padding: '8px 16px', background: '#2196b0', border: 'none' }} disabled={currentQuestionIndex === activeQuestions.length - 1} onClick={() => setCurrentQuestionIndex(i => i + 1)}>Next ▶</button>
@@ -329,17 +315,16 @@ export default function Practice() {
                 </div>
             </div>
 
-            {/* CARD 3: PHÂN HỆ PENWIN AI TUTOR ASSIST (TÍCH HỢP ĐẬM CHẤT THƯƠNG HIỆU - Hình 2) */}
+            {/* CARD 3: PENWIN AI TUTOR ASSIST */}
             <div className="card review-main-card" style={{ padding: '24px', textAlign: 'left' }}>
                 <div className="practice-ai-head" style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '14px' }}>
                     <img src={IMG_AI_ICON} alt="AI" className="ai-head-icon" />
                     <div>
                         <div className="practice-ai-title" style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Penwin AI Assist</div>
-                        <div className="practice-ai-sub" style={{ fontSize: '12.5px', color: '#64748b' }}>Hỏi AI về từ vựng hoặc ngữ cảnh bài làm này nhé Ngân!</div>
+                        <div className="practice-ai-sub" style={{ fontSize: '12.5px', color: '#64748b' }}>Hỏi AI về từ vựng hoặc ngữ cảnh bài làm nhé Ngân!</div>
                     </div>
                 </div>
 
-                {/* Khung hội thoại bong bóng chat cuộn mượt mà */}
                 <div className="practice-ai-thread" style={{ maxHeight: '180px', overflowY: 'auto', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                     {aiMessages.length === 0 ? (
                         <div className="practice-ai-empty" style={{ fontSize: '13px', color: '#94a3b8', textStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>Chọn gợi ý nhanh hoặc nhập câu hỏi bên dưới!</div>
@@ -358,14 +343,12 @@ export default function Practice() {
                     <div ref={threadEndRef} />
                 </div>
 
-                {/* Khối chip phím tắt hỏi nhanh */}
                 <div className="practice-ai-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
                     <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Giải thích chi tiết cấu trúc ngữ pháp và quy tắc chọn từ câu hỏi này.')}>💡 Giải thích cấu trúc</button>
                     <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Dịch giúp mình toàn bộ nội dung đoạn văn/câu hỏi hiện tại sang tiếng Việt.')}>🇻🇳 Dịch câu này</button>
                     <button className="practice-ai-chip" onClick={() => handleSendAiMessage('Tổng hợp các từ vựng core cốt lõi cần nhớ trong bài luyện tập này.')}>📚 Từ vựng khó</button>
                 </div>
 
-                {/* Khung nhập text chat */}
                 <div className="practice-ai-input-row" style={{ display: 'flex', gap: '8px' }}>
                     <textarea
                         className="practice-ai-input"
@@ -391,10 +374,16 @@ export default function Practice() {
                 </div>
             </div>
 
-            {/* DÒNG TIẾP TỤC FOOTER TRANG CHÍNH */}
             <div className="review-actions-row">
-                <button className="btn btn-primary" style={{ background: '#2196b0', border: 'none' }} onClick={handleNextQuestion}>
-                    Next Question ▶
+                <button className="btn btn-primary" style={{ background: '#2196b0', border: 'none' }} onClick={() => {
+                    if (passages.length > 0 && currentPassageIndex + 1 < passages.length) {
+                        setCurrentPassageIndex(p => p + 1);
+                    } else {
+                        if (toast) toast('Chúc mừng bạn đã hoàn thành bài luyện tập!', 'success');
+                        setIsStarted(false);
+                    }
+                }}>
+                    Next Block ▶
                 </button>
                 <button className="btn btn-ghost" onClick={() => setIsStarted(false)}>Đổi loại luyện tập</button>
             </div>
