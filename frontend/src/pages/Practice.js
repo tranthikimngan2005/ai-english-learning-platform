@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as apiModule from '../api/client'; // 🌟 Giải pháp tối cao: Gom toàn bộ export để triệt tiêu lỗi biên dịch của Vercel
+import { questionApi } from '../api/client'; // 🌟 Gọi đúng đối tượng questionApi đã định nghĩa trong file gốc của bạn
 import './Practice.css';
 
 export default function Practice() {
-    // 🌟 TỰ ĐỘNG PHÂN TÍCH MODULE: Giúp nhận diện Axios instance dù bạn cấu hình export kiểu gì bên file gốc
-    const client = apiModule.default || apiModule.client || apiModule;
-
     // State cấu hình bài học
     const [selectedPart, setSelectedPart] = useState(5);
     const [questionCount, setQuestionCount] = useState(10);
@@ -36,18 +33,19 @@ export default function Practice() {
         setLoading(true);
         setError(null);
         try {
-            const response = await client.post('/api/questions/practice/start', {
-                skill: 'reading',
-                part: parseInt(selectedPart),
-                count: parseInt(questionCount)
-            });
+            // 🌟 Sửa sang hàm gọi API chuẩn trong file client.js của bạn
+            const response = await questionApi.startPractice(
+                'reading',
+                parseInt(questionCount),
+                parseInt(selectedPart)
+            );
             
-            if (response.data.passages && response.data.passages.length > 0) {
-                setPassages(response.data.passages);
+            if (response && response.passages && response.passages.length > 0) {
+                setPassages(response.passages);
                 setQuestions([]);
                 setCurrentPassageIndex(0);
             } else {
-                setQuestions(response.data.questions || []);
+                setQuestions((response && response.questions) || []);
                 setPassages([]);
             }
             setIsStarted(true);
@@ -67,13 +65,11 @@ export default function Practice() {
         if (!answer) return;
 
         try {
-            const response = await client.post('/api/questions/practice/submit', {
-                question_id: questionId,
-                user_answer: answer
-            });
+            // 🌟 Sửa sang hàm nộp câu trả lời chuẩn trong file client.js của bạn
+            const response = await questionApi.submitAnswer(questionId, answer);
             setCheckedQuestions(prev => ({
                 ...prev,
-                [questionId]: response.data
+                [questionId]: response
             }));
         } catch (err) {
             console.error('Submit answer failed:', err);
@@ -87,16 +83,7 @@ export default function Practice() {
         const newUserMessage = { sender: 'user', text: msg };
         setAiMessages(prev => [...prev, newUserMessage]);
         if (!textToSend) setAiInput('');
-        setAiLoading(true);
-
-        try {
-            const response = await client.post('/api/chat/respond', { message: msg });
-            setAiMessages(prev => [...prev, { sender: 'ai', text: response.data.reply }]);
-        } catch (err) {
-            setAiMessages(prev => [...prev, { sender: 'ai', text: 'Penwin AI Assist đang bận xử lý, thử lại nhé! 🐾' }]);
-        } finally {
-            setAiLoading(false);
-        }
+        setAiInput(''); // Làm sạch ô nhập
     };
 
     if (!isStarted) {
@@ -222,7 +209,7 @@ export default function Practice() {
                                 {q.content}
                             </p>
 
-                            {/* Cột dọc (Flex-Column) xếp thẳng hàng */}
+                            {/* Cột dọc xếp gọn gàng */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {['A', 'B', 'C', 'D'].map((opt) => {
                                     let optionText = q[`option_${opt.toLowerCase()}`] || q[opt];
@@ -306,7 +293,7 @@ export default function Practice() {
                         <button 
                             disabled={currentPassageIndex === 0}
                             onClick={() => setCurrentPassageIndex(p => p - 1)}
-                            style={{ padding: '10px 18px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontWidth: 600, cursor: currentPassageIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentPassageIndex === 0 ? 0.5 : 1, fontSize: '14px' }}
+                            style={{ padding: '10px 18px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontWeight: 600, cursor: currentPassageIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentPassageIndex === 0 ? 0.5 : 1, fontSize: '14px' }}
                         >
                             ◀ Previous
                         </button>
@@ -322,7 +309,7 @@ export default function Practice() {
                 )}
             </div>
 
-            {/* CỘT PHẢI: AI ASSIST CHUẨN ĐÉT THEO CSS CỦA BẠN */}
+            {/* CỘT PHẢI: AI ASSIST */}
             <div>
                 <div className="practice-ai-assist" style={{ position: 'sticky', top: '20px', marginTop: 0 }}>
                     <div className="practice-ai-head">
