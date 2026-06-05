@@ -14,9 +14,18 @@ const TOEIC_PARTS = [
 ];
 
 const PART5_AI_PROMPTS = [
-  'Dịch sang tiếng Việt:',
-  'Giải thích câu này bằng tiếng Việt:',
-  'Hướng dẫn cách hiểu đề để chọn đáp án:',
+  {
+    label: 'Nội dung câu hỏi này là gì? Giải nghĩa và cho ví dụ cụ thể',
+    template: 'Hãy giải thích nội dung câu hỏi sau, nêu rõ nghĩa và đưa ra ví dụ minh họa cụ thể: "{question}"',
+  },
+  {
+    label: 'Dịch câu hỏi sang tiếng Việt và phân tích từng phần',
+    template: 'Dịch câu hỏi sau sang tiếng Việt và giải thích từng phần của đề: "{question}"',
+  },
+  {
+    label: 'Hướng dẫn cách hiểu đề để chọn đáp án đúng',
+    template: 'Cho mình cách hiểu đề và mẹo chọn đáp án cho câu hỏi sau: "{question}"',
+  },
 ];
 
 const normalizeAnswer = (v) => String(v ?? '').trim().toLowerCase();
@@ -349,13 +358,10 @@ export default function Practice() {
     container.scrollTo({ top: offset, behavior: 'smooth' });
   };
 
-  const buildPart5Prompt = (base) => {
-    if (!base) return '';
-    const text = singleQuestionText || '';
-    if (base.trim().endsWith(':')) {
-      return `${base} ${text}`;
-    }
-    return `${base} ${text}`;
+  const buildPart5Prompt = (promptObject) => {
+    const questionText = singleQuestionText?.trim() || '';
+    if (!promptObject || !questionText) return '';
+    return promptObject.template.replace('{question}', questionText);
   };
 
   const handleAskAI = useCallback(async (promptText) => {
@@ -377,7 +383,7 @@ export default function Practice() {
     } finally {
       setAiLoading(false);
     }
-  }, []);
+  }, [singleQuestionText]);
 
   const renderPart5AiHelper = () => {
     if (Number(readingPart) !== 5 || isGroupMode || !singleQuestionText) return null;
@@ -402,16 +408,19 @@ export default function Practice() {
           </button>
         </div>
 
+        {aiError && <div className="ai-feedback ai-error">{aiError}</div>}
+        {aiResponse && <div className="ai-feedback ai-response">{aiResponse}</div>}
+
         <div className="ai-suggestion-list">
-          {PART5_AI_PROMPTS.map((base) => (
+          {PART5_AI_PROMPTS.map((item) => (
             <button
-              key={base}
+              key={item.label}
               type="button"
               className="ai-suggestion-btn"
-              onClick={() => handleAskAI(buildPart5Prompt(base))}
+              onClick={() => handleAskAI(buildPart5Prompt(item))}
               disabled={aiLoading}
             >
-              {base.replace(/:$/, '')}
+              {item.label}
             </button>
           ))}
         </div>
@@ -434,9 +443,6 @@ export default function Practice() {
             {aiLoading ? 'Đang gọi AI...' : 'Ask AI'}
           </button>
         </div>
-
-        {aiError && <div className="ai-feedback ai-error">{aiError}</div>}
-        {aiResponse && <div className="ai-feedback ai-response">{aiResponse}</div>}
       </div>
     );
   };
