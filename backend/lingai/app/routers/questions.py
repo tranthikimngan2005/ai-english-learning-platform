@@ -4,6 +4,7 @@ import hashlib
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.user import (
@@ -62,7 +63,9 @@ def list_questions(
     if skill:
         q = q.filter(Question.skill == skill)
     if level:
-        q = q.filter(Question.level == level)
+        # Sửa ép kiểu so sánh Enum tương thích với PostgreSQL
+        level_val = level.name if hasattr(level, 'name') else level
+        q = q.filter(or_(Question.level == level, Question.level == level_val))
     return q.order_by(Question.created_at.desc()).all()
 
 
@@ -97,7 +100,6 @@ def update_question(
         raise HTTPException(403, "Not your question")
     for k, v in payload.model_dump().items():
         setattr(q, k, v)
-    # Question updates are published immediately; no admin moderation step.
     q.status = ContentStatusEnum.approved
     db.commit()
     db.refresh(q)
@@ -160,7 +162,10 @@ def start_practice(
     if payload.part is not None:
         base_query = base_query.filter(Question.part == payload.part)
 
-    level_questions = base_query.filter(Question.level == current_level).all()
+    # 🌟 ĐOẠN SỬA LỖI CHÍ MẠNG: Đảm bảo tương thích so sánh Enum cả kiểu Object lẫn kiểu Chuỗi/Số trong Postgres
+    level_name = current_level.name if hasattr(current_level, 'name') else current_level
+    level_questions = base_query.filter(or_(Question.level == current_level, Question.level == level_name)).all()
+    
     if len(level_questions) < payload.count:
         pool = list({q.id: q for q in level_questions + base_query.all()}.values())
     else:
@@ -171,7 +176,6 @@ def start_practice(
         for question in pool:
             passage_text = (question.passage or "").strip()
             if not passage_text:
-                # Part 6/7 should always be passage-based; skip malformed rows.
                 continue
             passage_id = _build_passage_id(passage_text)
             grouped.setdefault(passage_id, []).append(question)
@@ -189,7 +193,6 @@ def start_practice(
             )
 
         if payload.part == 6:
-            # Keep TOEIC Part 6 blocks strict: 3-4 blanks per passage.
             passage_objects = [p for p in passage_objects if 3 <= len(p.questions) <= 4]
 
         random.shuffle(passage_objects)
@@ -225,7 +228,6 @@ def submit_answer(
     is_correct = payload.user_answer.strip().lower() == question.correct_answer.strip().lower()
     xp = 10 if is_correct else 2
 
-    # Save attempt
     attempt = QuestionAttempt(
         user_id=current_user.id,
         question_id=question.id,
@@ -234,7 +236,6 @@ def submit_answer(
     )
     db.add(attempt)
 
-    # Update skill profile
     profile = (
         db.query(SkillProfile)
         .filter(SkillProfile.user_id == current_user.id, SkillProfile.skill == question.skill)
@@ -245,18 +246,17 @@ def submit_answer(
         if is_correct:
             profile.questions_correct += 1
 
-        # Level up check
         if level_up_check(profile.questions_done, profile.questions_correct):
-            new_level = next_level(profile.current_level.value)
+            # Ép kiểu an toàn khi gọi hàm xử lý nâng cấp cấp độ
+            current_lv_val = profile.current_level.value if hasattr(profile.current_level, 'value') else profile.current_level
+            new_level = next_level(current_lv_val)
             if new_level:
                 profile.current_level = new_level
                 profile.questions_done = 0
                 profile.questions_correct = 0
 
-    # Update the recommendation schedule server-side; this is invisible to the frontend.
     track_user_error(current_user.id, question.id, is_correct, db)
 
-    # Keep legacy review-card behavior in parallel for existing review flows.
     if not is_correct:
         card = (
             db.query(ReviewCard)
@@ -274,15 +274,13 @@ def submit_answer(
         card.interval_days = interval_days_for_step(card.repetitions)
         card.due_date = schedule_due_for_step(card.repetitions)
 
-    # Update streak
     update_streak(db, current_user)
-
     db.commit()
 
     return SubmitAnswerResponse(
         is_correct=is_correct,
         correct_answer=question.correct_answer,
         explanation=question.explanation,
-        ai_feedback=None,  # AI feedback hooked in chat router
+        ai_feedback=None,
         xp_gained=xp,
     )
