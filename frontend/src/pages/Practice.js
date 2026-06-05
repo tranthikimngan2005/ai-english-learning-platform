@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import client from '../api/client';
+import { client } from '../api/client';
 import './Practice.css';
 
 export default function Practice() {
