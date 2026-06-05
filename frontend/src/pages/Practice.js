@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { client } from '../api/client';
+import { client } from '../api/client'; // 🌟 Đã sửa dấu ngoặc nhọn chuẩn theo lỗi Vercel
 import './Practice.css';
 
 export default function Practice() {
@@ -158,7 +158,7 @@ export default function Practice() {
             <div style={{ textAlign: 'left' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: '16px 20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* 🌟 FIX 1: THU NHỎ LOGO XUỐNG CÒN 40PX GỌN GÀNG GÓC TRÊN */}
+                        {/* 🌟 THU NHỎ LOGO XUỐNG CÒN 40PX GỌN GÀNG GÓC TRÊN */}
                         <img src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png" alt="Penwin Mini" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
                         <h3 style={{ margin: 0, fontWeight: 700, color: '#1e293b', fontSize: '18px' }}>TOEIC Part {selectedPart} Practice</h3>
                     </div>
@@ -220,10 +220,9 @@ export default function Practice() {
                                 {q.content}
                             </p>
 
-                            {/* 🌟 FIX 2: Đổi thành Cột dọc (Flex-Column) giãn cách đều, không bao giờ bị dính hàng ngang */}
+                            {/* 🌟 FIX ĐÁP ÁN: Đổi thành Cột dọc (Flex-Column) giãn cách đều, không bao giờ bị dính hàng ngang */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {['A', 'B', 'C', 'D'].map((opt) => {
-                                    // Bóc tách nội dung text, loại bỏ chữ cái thừa đầu chuỗi nếu có
                                     let optionText = q[`option_${opt.toLowerCase()}`] || q[opt];
                                     if (!optionText) return null;
                                     
