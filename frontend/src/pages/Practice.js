@@ -158,7 +158,7 @@ export default function Practice() {
             <div style={{ textAlign: 'left' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: '16px 20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* 🌟 THU NHỎ LOGO XUỐNG CÒN 40PX GỌN GÀNG GÓC TRÊN */}
+                        {/* 🌟 FIX 1: THU NHỎ LOGO XUỐNG CÒN 40PX GỌN GÀNG GÓC TRÊN */}
                         <img src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png" alt="Penwin Mini" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
                         <h3 style={{ margin: 0, fontWeight: 700, color: '#1e293b', fontSize: '18px' }}>TOEIC Part {selectedPart} Practice</h3>
                     </div>
@@ -217,10 +217,10 @@ export default function Practice() {
                             </div>
                             
                             <p style={{ fontSize: '15.5px', color: '#1e293b', marginBottom: '20px', lineHeight: 1.6, fontWeight: 500 }}>
-                                {selectedPart === 5 ? (q.content || "archive") : q.content}
+                                {q.content}
                             </p>
 
-                            {/* 🌟 FIX ĐÁP ÁN: Đổi thành Cột dọc (Flex-Column) giãn cách đều, không bao giờ bị dính hàng ngang */}
+                            {/* 🌟 FIX 2: Đổi thành Cột dọc (Flex-Column) giãn cách đều, không bao giờ bị dính hàng ngang */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {['A', 'B', 'C', 'D'].map((opt) => {
                                     // Bóc tách nội dung text, loại bỏ chữ cái thừa đầu chuỗi nếu có
