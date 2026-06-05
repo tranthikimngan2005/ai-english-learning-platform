@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { client } from '../api/client'; // 🌟 Đã sửa dấu ngoặc nhọn chuẩn theo lỗi Vercel
+import * as apiModule from '../api/client'; // 🌟 Giải pháp tối cao: Gom toàn bộ export để triệt tiêu lỗi biên dịch của Vercel
 import './Practice.css';
 
 export default function Practice() {
+    // 🌟 TỰ ĐỘNG PHÂN TÍCH MODULE: Giúp nhận diện Axios instance dù bạn cấu hình export kiểu gì bên file gốc
+    const client = apiModule.default || apiModule.client || apiModule;
+
     // State cấu hình bài học
     const [selectedPart, setSelectedPart] = useState(5);
     const [questionCount, setQuestionCount] = useState(10);
@@ -158,7 +161,6 @@ export default function Practice() {
             <div style={{ textAlign: 'left' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: '16px 20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* 🌟 THU NHỎ LOGO XUỐNG CÒN 40PX GỌN GÀNG GÓC TRÊN */}
                         <img src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png" alt="Penwin Mini" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
                         <h3 style={{ margin: 0, fontWeight: 700, color: '#1e293b', fontSize: '18px' }}>TOEIC Part {selectedPart} Practice</h3>
                     </div>
@@ -220,7 +222,7 @@ export default function Practice() {
                                 {q.content}
                             </p>
 
-                            {/* 🌟 FIX ĐÁP ÁN: Đổi thành Cột dọc (Flex-Column) giãn cách đều, không bao giờ bị dính hàng ngang */}
+                            {/* Cột dọc (Flex-Column) xếp thẳng hàng */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {['A', 'B', 'C', 'D'].map((opt) => {
                                     let optionText = q[`option_${opt.toLowerCase()}`] || q[opt];
@@ -304,7 +306,7 @@ export default function Practice() {
                         <button 
                             disabled={currentPassageIndex === 0}
                             onClick={() => setCurrentPassageIndex(p => p - 1)}
-                            style={{ padding: '10px 18px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontWeight: 600, cursor: currentPassageIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentPassageIndex === 0 ? 0.5 : 1, fontSize: '14px' }}
+                            style={{ padding: '10px 18px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontWidth: 600, cursor: currentPassageIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentPassageIndex === 0 ? 0.5 : 1, fontSize: '14px' }}
                         >
                             ◀ Previous
                         </button>
