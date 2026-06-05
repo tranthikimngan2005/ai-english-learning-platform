@@ -8,9 +8,9 @@ import './Practice.css';
 
 const SKILL_IMGS = { reading: IMG_VOCAB };
 const TOEIC_PARTS = [
-  { value: 5, label: 'PART 5', sub: 'Incomplete Sentences' },
-  { value: 6, label: 'PART 6', sub: 'Text Completion' },
-  { value: 7, label: 'PART 7', sub: 'Reading Comprehension' },
+  { value: 5, label: 'Part 5', sub: 'Incomplete Sentences' },
+  { value: 6, label: 'Part 6', sub: 'Text Completion' },
+  { value: 7, label: 'Part 7', sub: 'Reading Comprehension' },
 ];
 
 const normalizeAnswer = (v) => String(v ?? '').trim().toLowerCase();
@@ -52,7 +52,7 @@ function parseQuestionNumber(question, fallback) {
   return fallback + 1;
 }
 
-function buildPassageGroups(items) {
+function buildPassageGroups(items, readingPart) {
   const grouped = new Map();
 
   items.forEach((item, idx) => {
@@ -78,7 +78,8 @@ function buildPassageGroups(items) {
           ...question,
           _groupKey: String(key),
           _questionKey: question?.id ? `id-${question.id}` : `${key}-${qIndex}`,
-          _questionNo: parseQuestionNumber(question, qIndex),
+          // 🌟 Sửa lỗi lặp câu Q2 cho Part 6 và Part 7 bằng qIndex + 1 chuẩn TOEIC
+          _questionNo: Number(readingPart) === 6 || Number(readingPart) === 7 ? qIndex + 1 : parseQuestionNumber(question, qIndex),
         }));
 
       return {
@@ -202,7 +203,13 @@ export default function Practice() {
   const currentGroup = groups[groupIdx] || null;
   const currentGroupQuestions = currentGroup?.questions || [];
   const activeMetaQuestion = isGroupMode ? currentGroupQuestions[0] : questions[idx];
+  
+  // 🌟 KHAI BÁO BIẾN MAP CHUẨN ĐỂ ĐẬP TAN LỖI TRẮNG TRANG TRÊN PART 5
   const currentSingleQuestion = questions[idx] || null;
+  const singleQuestion = currentSingleQuestion;
+  const singleQuestionText = singleQuestion?.question_text || singleQuestion?.content || '';
+  const singleType = singleQuestion?.q_type || ((singleQuestion?.options && singleQuestion.options.length) ? 'mcq' : 'fill_blank');
+
   const activeAiQuestion = isGroupMode ? currentGroupQuestions[0] || null : currentSingleQuestion;
 
   const allGroupAnswered = useMemo(() => {
@@ -254,7 +261,8 @@ export default function Practice() {
               ...question,
               _groupKey: String(passageObject?.passage_id || `passage-${passageIndex}`),
               _questionKey: question?.id ? `id-${question.id}` : `passage-${passageIndex}-${qIndex}`,
-              _questionNo: parseQuestionNumber(question, qIndex),
+              // 🌟 Ép chỉ số tuần tự tăng dần Q1, Q2, Q3 loại bỏ lỗi lặp câu
+              _questionNo: qIndex + 1,
             }));
 
           return {
@@ -266,7 +274,7 @@ export default function Practice() {
         }).filter((group) => group.questions.length > 0);
 
         const legacyQuestions = Array.isArray(data?.questions) ? data.questions : [];
-        const grouped = groupedFromApi.length ? groupedFromApi : buildPassageGroups(legacyQuestions);
+        const grouped = groupedFromApi.length ? groupedFromApi : buildPassageGroups(legacyQuestions, readingPart);
 
         if (!grouped.length) {
           toast('No grouped passages found for this part.', 'error');
@@ -298,18 +306,6 @@ export default function Practice() {
       setLoading(false);
     }
   }, [skill, count, readingPart, toast]);
-
-  const persistReadingPartProgress = useCallback((part, isCorrect) => {
-    const key = 'pengwin_reading_part_progress';
-    const current = JSON.parse(localStorage.getItem(key) || '{}');
-    const partKey = `part${Number(part)}`;
-    const prev = current[partKey] || { done: 0, correct: 0 };
-    current[partKey] = {
-      done: prev.done + 1,
-      correct: prev.correct + (isCorrect ? 1 : 0),
-    };
-    localStorage.setItem(key, JSON.stringify(current));
-  }, []);
 
   const handleSingleSubmit = async () => {
     if (!answer.trim()) {
@@ -370,11 +366,6 @@ export default function Practice() {
     setResult(null);
   };
 
-  const handleGroupAnswerChange = (questionKey, value) => {
-    if (!currentGroup || currentGroupChecked) return;
-    setGroupAnswers((prev) => ({ ...prev, [questionKey]: value }));
-  };
-
   const handleCheckGroup = () => {
     if (!currentGroup) return;
     if (currentGroupChecked) return;
@@ -419,8 +410,14 @@ export default function Practice() {
     }
     setGroupIdx((i) => i + 1);
     requestAnimationFrame(() => {
-      if (questionListRef.current) questionListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      if (questionListRef.current) containerScrollToTop();
     });
+  };
+
+  const containerScrollToTop = () => {
+     if (questionListRef.current) {
+        questionListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+     }
   };
 
   const scrollToQuestion = (questionNo) => {
@@ -607,9 +604,8 @@ export default function Practice() {
                   className={`skill-pick-btn part-pick-btn ${readingPart === p.value ? 'active' : ''}`}
                   onClick={() => setReadingPart(p.value)}
                 >
-                  {/* 🌟 CHỮ IN ĐẬM VÀ TO RA THEO YÊU CẦU NGÂN KHÔNG LO LỖI ẢNH */}
-                  <span style={{ fontSize: '20px', fontWeight: '900', display: 'block', marginBottom: '4px', color: readingPart === p.value ? '#0ea5e9' : '#1e293b' }}>
-                    {p.label}
+                  <span style={{ fontSize: '20px', fontWeight: '900', display: 'block', marginBottom: '4px' }}>
+                     {p.label}
                   </span>
                   <small className="part-pick-sub">{p.sub}</small>
                 </button>
@@ -727,21 +723,18 @@ export default function Practice() {
       </div>
 
       {isGroupMode ? (
-        /* 📖 LAYOUT CHIA ĐÔI MÀN HÌNH NGUYÊN BẢN CỦA BẠN (SỬ DỤNG ĐÚNG COMPONENT QUESTIONCARD GỐC) */
-        <div className="practice-reading-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start', textAlign: 'left' }}>
-          
-          {/* CỘT TRÁI: ĐOẠN VĂN ĐỌC HIỂU (STICKY CỐ ĐỊNH) */}
-          <div className="passage-card card" style={{ position: 'sticky', top: '20px', maxHeight: '75vh', overflowY: 'auto' }}>
+        /* 🌟 2. LOẠI BỎ INLINE STYLE - SỬ DỤNG CLASS ĐƯỢC CHUẨN HÓA CHO P6/P7 */
+        <div className="practice-reading-layout">
+          <div className="passage-card card">
             <div className="passage-title">Passage</div>
-            <div className="passage-content" style={{ lineHeight: 1.7, fontSize: '15px' }}>
+            <div className="passage-content">
               {renderPassageWithInteractiveBlanks(currentGroup?.passage)}
             </div>
           </div>
 
-          {/* CỘT PHẢI: TOÀN BỘ DANH SÁCH CÂU HỎI */}
-          <div className="question-card card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="question-card card">
             <div className="question-list-title">Questions in this passage</div>
-            <div className="question-list-mini" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+            <div className="question-list-mini">
               {currentGroupQuestions.map((question) => {
                 const qResult = groupResults[currentGroup?.key]?.[question._questionKey];
                 const isAnswered = normalizeAnswer(groupAnswers[question._questionKey]).length > 0;
@@ -753,7 +746,6 @@ export default function Practice() {
                       currentGroupChecked && qResult?.is_correct ? 'correct' : ''
                     } ${currentGroupChecked && qResult && !qResult.is_correct ? 'wrong' : ''}`}
                     onClick={() => scrollToQuestion(question._questionNo)}
-                    style={{ padding: '6px 12px', borderRadius: '6px', fontWeight: 700 }}
                   >
                     Q{question._questionNo}
                   </button>
@@ -761,12 +753,11 @@ export default function Practice() {
               })}
             </div>
 
-            <div className="match-hint" style={{ marginBottom: 12, fontSize: '12px', color: 'var(--text3)' }}>
+            <div className="match-hint" style={{ marginBottom: 12 }}>
               For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.
             </div>
 
-            {/* Gọi đúng component gốc để bốc đáp án và giao diện, triệt tiêu lỗi trắng trang */}
-            <div className="question-scroll" ref={questionListRef} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="question-scroll" ref={questionListRef}>
               {currentGroupQuestions.map((question) => (
                 <div
                   key={question._questionKey}
@@ -774,7 +765,6 @@ export default function Practice() {
                   ref={(el) => {
                     questionNodeRefs.current[question._questionKey] = el;
                   }}
-                  style={{ borderBottom: '1px solid var(--sky2)', paddingBottom: '16px' }}
                 >
                   <QuestionCard
                     question={question}
@@ -791,48 +781,42 @@ export default function Practice() {
           </div>
         </div>
       ) : (
-        /* ⌨️ MÀN HÌNH ĐƠN CÂU LUYỆN TẬP CHO PART 5 (BẤM CHỌN ĐƯỢC ĐÁP ÁN) */
-        <div className="question-card card" style={{ textAlign: 'left', padding: '24px' }}>
+        <div className="question-card card">
           {singleQuestion?.passage ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ whiteSpace: 'pre-line', lineHeight: 1.6, fontSize: 14, color: 'var(--text2)' }}>{singleQuestion.passage}</div>
               <div>
                 <p className="q-text">{singleQuestionText}</p>
 
-                {singleType === 'mcq' && (
-                  <div className="choices" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {(singleQuestion.options || []).map((opt, i) => {
-                      const letter = String.fromCharCode(65 + i);
-                      let optionClass = "";
-                      if (result && opt === result.correct_answer) optionClass = "correct";
-                      else if (result && answer === opt && !result.is_correct) optionClass = "wrong";
-
-                      return (
-                        <button 
-                          key={i} 
-                          disabled={!!result} 
-                          className={`choice ${answer === opt ? 'selected' : ''} ${optionClass}`} 
-                          onClick={() => setAnswer(opt)}
-                          style={{ textAlign: 'left', width: '100%' }}
-                        >
-                          <span className="choice-letter" style={{
-                            background: optionClass === 'correct' ? '#10b981' : optionClass === 'wrong' ? '#ef4444' : '',
-                            color: optionClass ? '#fff' : ''
-                          }}>{letter}</span>
-                          {opt}
-                        </button>
-                      );
-                    })}
+                {singleType === 'mcq' && !result && (
+                  <div className="choices">
+                    {(singleQuestion.options || []).map((opt, i) => (
+                      <button key={i} className={`choice ${answer === opt ? 'selected' : ''}`} onClick={() => setAnswer(opt)}>
+                        <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
+                      </button>
+                    ))}
                   </div>
                 )}
-                {singleType !== 'mcq' && (
+                {singleType === 'mcq' && result && (
+                  <div className="choices">
+                    {(singleQuestion.options || []).map((opt, i) => (
+                      <div
+                        key={i}
+                        className={`choice static ${opt === result.correct_answer ? 'correct' : ''}${opt === answer && !result.is_correct ? ' wrong' : ''}`}
+                      >
+                        <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(singleType === 'fill_blank' || singleType === 'writing' || singleType === 'speaking') && (
                   <textarea
                     className="form-textarea"
-                    placeholder="Enter your answer..."
+                    placeholder={singleType === 'fill_blank' ? 'Enter your answer...' : 'Write your answer...'}
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
                     disabled={!!result}
-                    rows={2}
+                    rows={singleType === 'writing' ? 5 : 2}
                   />
                 )}
               </div>
@@ -841,52 +825,47 @@ export default function Practice() {
             <>
               <p className="q-text">{singleQuestionText}</p>
 
-              {singleType === 'mcq' && (
-                <div className="choices" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {(singleQuestion.options || []).map((opt, i) => {
-                    const letter = String.fromCharCode(65 + i);
-                    let optionClass = "";
-                    if (result && opt === result.correct_answer) optionClass = "correct";
-                    else if (result && answer === opt && !result.is_correct) optionClass = "wrong";
-
-                    return (
-                      <button 
-                        key={i} 
-                        disabled={!!result} 
-                        className={`choice ${answer === opt ? 'selected' : ''} ${optionClass}`} 
-                        onClick={() => setAnswer(opt)}
-                        style={{ textAlign: 'left', width: '100%' }}
-                      >
-                        <span className="choice-letter" style={{
-                          background: optionClass === 'correct' ? '#10b981' : optionClass === 'wrong' ? '#ef4444' : '',
-                          color: optionClass ? '#fff' : ''
-                        }}>{letter}</span>
-                        {opt}
-                      </button>
-                    );
-                  })}
+              {singleType === 'mcq' && !result && (
+                <div className="choices">
+                  {(singleQuestion.options || []).map((opt, i) => (
+                    <button key={i} className={`choice ${answer === opt ? 'selected' : ''}`} onClick={() => setAnswer(opt)}>
+                      <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
+                    </button>
+                  ))}
                 </div>
               )}
-              {singleType !== 'mcq' && (
+              {singleType === 'mcq' && result && (
+                <div className="choices">
+                  {(singleQuestion.options || []).map((opt, i) => (
+                    <div
+                      key={i}
+                      className={`choice static ${opt === result.correct_answer ? 'correct' : ''}${opt === answer && !result.is_correct ? ' wrong' : ''}`}
+                    >
+                      <span className="choice-letter">{String.fromCharCode(65 + i)}</span>{opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(singleType === 'fill_blank' || singleType === 'writing' || singleType === 'speaking') && (
                 <textarea
                   className="form-textarea"
-                  placeholder="Enter your answer..."
+                  placeholder={singleType === 'fill_blank' ? 'Enter your answer...' : 'Write your answer...'}
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
                   disabled={!!result}
-                  rows={2}
+                  rows={singleType === 'writing' ? 5 : 2}
                 />
               )}
             </>
           )}
 
           {result && (
-            <div className={`feedback ${result.is_correct ? 'correct-fb' : 'wrong-fb'}`} style={{ marginTop: '14px', display: 'flex', gap: '10px', padding: '12px', borderRadius: '8px' }}>
+            <div className={`feedback ${result.is_correct ? 'correct-fb' : 'wrong-fb'}`}>
               <div className="feedback-icon">{result.is_correct ? '✅' : '❌'}</div>
               <div>
-                <div className="feedback-title" style={{ fontWeight: 700 }}>{result.is_correct ? `Correct! +${result.xp_gained} XP` : 'Incorrect'}</div>
+                <div className="feedback-title">{result.is_correct ? `Correct! +${result.xp_gained} XP` : 'Incorrect'}</div>
                 {!result.is_correct && <div className="feedback-answer">Answer: <strong>{result.correct_answer}</strong></div>}
-                {result.explanation && <div className="feedback-explain" style={{ marginTop: '4px', color: 'var(--text2)' }}>💡 {result.explanation}</div>}
+                {result.explanation && <div className="feedback-explain">{result.explanation}</div>}
               </div>
             </div>
           )}
