@@ -98,15 +98,17 @@ export default function Practice() {
     // MÀN HÌNH SETUP - GIỮ NGUYÊN GIAO DIỆN GỐC CỦA BẠN
     if (!isStarted) {
         return (
-            <div className="practice-config">
-                <div className="practice-header-card">
-                    <h2>▶ Practice</h2>
-                    <p>Choose TOEIC Reading part and question count to begin</p>
+            <div className="practice-page fade-up">
+                <div className="practice-header-card card">
+                    <div>
+                        <div className="section-title">TOEIC Reading Practice</div>
+                        <p className="section-subtitle">Chọn phần bài thi và số câu hỏi để bắt đầu luyện cùng phong cách màu sắc đồng bộ.</p>
+                    </div>
+                    <span className="badge badge-blue">Ready to practice</span>
                 </div>
 
-                <div className="practice-form-container">
-                    <label className="form-section-label">TOEIC Reading Part</label>
-                    
+                <div className="practice-form-card card">
+                    <label className="form-label">TOEIC Reading Part</label>
                     <div className="part-picker">
                         <button className={`part-pick-btn ${selectedPart === 5 ? 'active' : ''}`} onClick={() => setSelectedPart(5)}>
                             <img src="/assets/icons/part5.png" alt="Part 5" onError={(e) => e.target.src="https://cdn-icons-png.flaticon.com/512/3593/3593444.png"} />
@@ -126,7 +128,7 @@ export default function Practice() {
                     </div>
 
                     <div className="slider-container">
-                        <label className="form-section-label">
+                        <label className="form-label">
                             QUESTION COUNT: <span className="count-highlight">{questionCount}</span>
                         </label>
                         <input 
@@ -140,7 +142,7 @@ export default function Practice() {
 
                     <button 
                         onClick={handleStartPractice} disabled={loading}
-                        className="start-practice-btn"
+                        className="btn btn-primary start-practice-btn"
                     >
                         {loading ? 'Loading Questions...' : `▶ Start ${questionCount} questions - Part ${selectedPart}`}
                     </button>
@@ -153,7 +155,7 @@ export default function Practice() {
 
     // MÀN HÌNH LÀM BÀI - GIỮ NGUYÊN HOÀN TOÀN CARD, ICON VÀ MÀU SẮC BAN ĐẦU CỦA BẠN
     return (
-        <div className="practice-screen-layout">
+        <div className="practice-page practice-screen-layout fade-up">
             
             {/* KHU VỰC ĐỀ THI */}
             <div className="questions-column">
@@ -233,15 +235,15 @@ export default function Practice() {
                     {/* NÚT ĐIỀU HƯỚNG ĐOẠN VĂN GỐC */}
                     {passages.length > 0 && (
                         <div className="passage-navigation-bar">
-                            <button disabled={currentPassageIndex === 0} onClick={() => setCurrentPassageIndex(p => p - 1)}>◀ Previous Passage</button>
+                            <button className="btn btn-secondary btn-sm" disabled={currentPassageIndex === 0} onClick={() => setCurrentPassageIndex(p => p - 1)}>◀ Previous Passage</button>
                             <span>Passage {currentPassageIndex + 1} / {passages.length}</span>
-                            <button disabled={currentPassageIndex === passages.length - 1} onClick={() => setCurrentPassageIndex(p => p + 1)}>Next Passage ▶</button>
+                            <button className="btn btn-secondary btn-sm" disabled={currentPassageIndex === passages.length - 1} onClick={() => setCurrentPassageIndex(p => p + 1)}>Next Passage ▶</button>
                         </div>
                     )}
 
                     <div className="practice-footer-actions">
-                        <button className="footer-action-submit-btn">Check Answer</button>
-                        <button className="footer-action-stop-btn" onClick={() => setIsStarted(false)}>Stop</button>
+                        <button className="btn btn-primary footer-action-submit-btn">Check Answer</button>
+                        <button className="btn btn-secondary footer-action-stop-btn" onClick={() => setIsStarted(false)}>Stop</button>
                     </div>
                 </div>
             </div>
@@ -292,7 +294,7 @@ export default function Practice() {
                                 }
                             }}
                         />
-                        <button className="practice-ai-send" onClick={() => handleSendAiMessage()} disabled={aiLoading || !aiInput.trim()} style={{ backgroundColor: '#0ea5e9', color: '#fff', border: 'none', cursor: 'pointer' }}>Ask AI</button>
+                        <button className="btn btn-primary practice-ai-send" onClick={() => handleSendAiMessage()} disabled={aiLoading || !aiInput.trim()}>Ask AI</button>
                     </div>
                 </div>
             </div>
