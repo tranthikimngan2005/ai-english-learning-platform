@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { questionApi } from '../api/client';
+import { questionApi, chatApi } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { IMG_VOCAB, IMG_PROGRESS, IMG_HERO } from '../assets/images';
 import QuestionCard from '../components/QuestionCard';
@@ -11,6 +11,12 @@ const TOEIC_PARTS = [
   { value: 5, label: 'Part 5', sub: 'Incomplete Sentences' },
   { value: 6, label: 'Part 6', sub: 'Text Completion' },
   { value: 7, label: 'Part 7', sub: 'Reading Comprehension' },
+];
+
+const PART5_AI_PROMPTS = [
+  'Dịch sang tiếng Việt:',
+  'Giải thích câu này bằng tiếng Việt:',
+  'Hướng dẫn cách hiểu đề để chọn đáp án:',
 ];
 
 const normalizeAnswer = (v) => String(v ?? '').trim().toLowerCase();
@@ -101,6 +107,10 @@ export default function Practice() {
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   const questionListRef = useRef(null);
   const questionNodeRefs = useRef({});
@@ -337,6 +347,98 @@ export default function Practice() {
 
     const offset = Math.max(node.offsetTop - container.offsetTop - 10, 0);
     container.scrollTo({ top: offset, behavior: 'smooth' });
+  };
+
+  const buildPart5Prompt = (base) => {
+    if (!base) return '';
+    const text = singleQuestionText || '';
+    if (base.trim().endsWith(':')) {
+      return `${base} ${text}`;
+    }
+    return `${base} ${text}`;
+  };
+
+  const handleAskAI = useCallback(async (promptText) => {
+    if (!promptText || !promptText.trim()) {
+      setAiError('Vui lòng nhập hoặc chọn yêu cầu AI.');
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError(null);
+    setAiResponse('');
+    try {
+      const saved = await chatApi.generate(promptText);
+      setAiResponse(saved?.content || 'AI không trả về kết quả.');
+      setAiQuery(promptText);
+    } catch (e) {
+      const message = e?.message || 'Lỗi khi gọi AI. Hãy thử lại.';
+      setAiError(message);
+    } finally {
+      setAiLoading(false);
+    }
+  }, []);
+
+  const renderPart5AiHelper = () => {
+    if (Number(readingPart) !== 5 || isGroupMode || !singleQuestionText) return null;
+    return (
+      <div className="ai-helper-card">
+        <div className="ai-helper-header">
+          <div>
+            <div className="ai-helper-title">AI gợi ý Part 5</div>
+            <div className="ai-helper-sub">Dịch hoặc giải nghĩa câu hỏi để hiểu đề nhanh hơn.</div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setAiQuery('');
+              setAiResponse('');
+              setAiError(null);
+            }}
+            disabled={aiLoading}
+          >
+            Xóa
+          </button>
+        </div>
+
+        <div className="ai-suggestion-list">
+          {PART5_AI_PROMPTS.map((base) => (
+            <button
+              key={base}
+              type="button"
+              className="ai-suggestion-btn"
+              onClick={() => handleAskAI(buildPart5Prompt(base))}
+              disabled={aiLoading}
+            >
+              {base.replace(/:$/, '')}
+            </button>
+          ))}
+        </div>
+
+        <div className="ai-query-row">
+          <input
+            type="text"
+            className="ai-query-input"
+            placeholder="Nhập yêu cầu AI cho câu này..."
+            value={aiQuery}
+            onChange={(e) => setAiQuery(e.target.value)}
+            disabled={aiLoading}
+          />
+          <button
+            type="button"
+            className="btn btn-primary ai-query-btn"
+            onClick={() => handleAskAI(aiQuery || buildPart5Prompt(PART5_AI_PROMPTS[0]))}
+            disabled={aiLoading || !(aiQuery.trim() || singleQuestionText)}
+          >
+            {aiLoading ? 'Đang gọi AI...' : 'Ask AI'}
+          </button>
+        </div>
+
+        {aiError && <div className="ai-feedback ai-error">{aiError}</div>}
+        {aiResponse && <div className="ai-feedback ai-response">{aiResponse}</div>}
+      </div>
+    );
   };
 
   const renderPassageWithInteractiveBlanks = (passageText) => {
@@ -594,6 +696,7 @@ export default function Practice() {
               <div style={{ whiteSpace: 'pre-line', lineHeight: 1.6, fontSize: 14, color: 'var(--text2)' }}>{singleQuestion.passage}</div>
               <div>
                 <p className="q-text">{singleQuestionText}</p>
+                {renderPart5AiHelper()}
 
                 {singleType === 'mcq' && !result && (
                   <div className="choices">
@@ -631,6 +734,7 @@ export default function Practice() {
           ) : (
             <>
               <p className="q-text">{singleQuestionText}</p>
+              {renderPart5AiHelper()}
 
               {singleType === 'mcq' && !result && (
                 <div className="choices">
