@@ -15,12 +15,12 @@ const TOEIC_PARTS = [
 
 const PART5_AI_PROMPTS = [
   {
-    label: 'Nội dung câu hỏi này là gì? Giải nghĩa và cho ví dụ cụ thể',
+    label: 'Nội dung câu hỏi + nghĩa là gì + ví dụ minh họa cụ thể',
     template: 'Hãy giải thích nội dung câu hỏi sau, nêu rõ nghĩa và đưa ra ví dụ minh họa cụ thể: "{question}"',
   },
   {
-    label: 'Dịch câu hỏi sang tiếng Việt và phân tích từng phần',
-    template: 'Dịch câu hỏi sau sang tiếng Việt và giải thích từng phần của đề: "{question}"',
+    label: 'Dịch câu hỏi sang tiếng Việt và phân tích',
+    template: 'Dịch câu hỏi sau sang tiếng Việt và phân tích từng phần: "{question}"',
   },
   {
     label: 'Hướng dẫn cách hiểu đề để chọn đáp án đúng',
@@ -383,7 +383,7 @@ export default function Practice() {
     } finally {
       setAiLoading(false);
     }
-  }, [singleQuestionText]);
+  }, []);
 
   const renderPart5AiHelper = () => {
     if (Number(readingPart) !== 5 || isGroupMode || !singleQuestionText) return null;
@@ -702,7 +702,6 @@ export default function Practice() {
               <div style={{ whiteSpace: 'pre-line', lineHeight: 1.6, fontSize: 14, color: 'var(--text2)' }}>{singleQuestion.passage}</div>
               <div>
                 <p className="q-text">{singleQuestionText}</p>
-                {renderPart5AiHelper()}
 
                 {singleType === 'mcq' && !result && (
                   <div className="choices">
@@ -740,7 +739,6 @@ export default function Practice() {
           ) : (
             <>
               <p className="q-text">{singleQuestionText}</p>
-              {renderPart5AiHelper()}
 
               {singleType === 'mcq' && !result && (
                 <div className="choices">
@@ -775,6 +773,8 @@ export default function Practice() {
               )}
             </>
           )}
+
+          {renderPart5AiHelper()}
 
           {result && (
             <div className={`feedback ${result.is_correct ? 'correct-fb' : 'wrong-fb'}`}>
