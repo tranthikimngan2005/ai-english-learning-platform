@@ -8,9 +8,9 @@ import './Practice.css';
 
 const SKILL_IMGS = { reading: IMG_VOCAB };
 const TOEIC_PARTS = [
-  { value: 5, label: 'Part 5', sub: 'Incomplete Sentences' },
-  { value: 6, label: 'Part 6', sub: 'Text Completion' },
-  { value: 7, label: 'Part 7', sub: 'Reading Comprehension' },
+  { value: 5, label: 'PART 5', sub: 'Incomplete Sentences' },
+  { value: 6, label: 'PART 6', sub: 'Text Completion' },
+  { value: 7, label: 'PART 7', sub: 'Reading Comprehension' },
 ];
 
 const normalizeAnswer = (v) => String(v ?? '').trim().toLowerCase();
@@ -607,7 +607,10 @@ export default function Practice() {
                   className={`skill-pick-btn part-pick-btn ${readingPart === p.value ? 'active' : ''}`}
                   onClick={() => setReadingPart(p.value)}
                 >
-                  <span>{p.label}</span>
+                  {/* 🌟 CHỮ IN ĐẬM VÀ TO RA THEO YÊU CẦU NGÂN KHÔNG LO LỖI ẢNH */}
+                  <span style={{ fontSize: '20px', fontWeight: '900', display: 'block', marginBottom: '4px', color: readingPart === p.value ? '#0ea5e9' : '#1e293b' }}>
+                    {p.label}
+                  </span>
                   <small className="part-pick-sub">{p.sub}</small>
                 </button>
               ))}
@@ -684,10 +687,6 @@ export default function Practice() {
     );
   }
 
-  const singleQuestion = questions[idx];
-  const singleQuestionText = singleQuestion?.question_text || singleQuestion?.content || '';
-  const singleType = singleQuestion?.q_type || ((singleQuestion?.options && singleQuestion.options.length) ? 'mcq' : null);
-
   return (
     <div className="fade-up">
       <div className="practice-header">
@@ -728,8 +727,10 @@ export default function Practice() {
       </div>
 
       {isGroupMode ? (
+        /* 📖 LAYOUT CHIA ĐÔI MÀN HÌNH NGUYÊN BẢN CỦA BẠN (SỬ DỤNG ĐÚNG COMPONENT QUESTIONCARD GỐC) */
         <div className="practice-reading-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start', textAlign: 'left' }}>
-          {/* CỘT TRÁI: HIỂN THỊ ĐOẠN VĂN ĐỌC HIỂU (STICKY) */}
+          
+          {/* CỘT TRÁI: ĐOẠN VĂN ĐỌC HIỂU (STICKY CỐ ĐỊNH) */}
           <div className="passage-card card" style={{ position: 'sticky', top: '20px', maxHeight: '75vh', overflowY: 'auto' }}>
             <div className="passage-title">Passage</div>
             <div className="passage-content" style={{ lineHeight: 1.7, fontSize: '15px' }}>
@@ -737,7 +738,7 @@ export default function Practice() {
             </div>
           </div>
 
-          {/* CỘT PHẢI: HIỂN THỊ DANH SÁCH CÂU HỎI ĐỔ DỌC CHUẨN CARD VÀ NÚT BẤM */}
+          {/* CỘT PHẢI: TOÀN BỘ DANH SÁCH CÂU HỎI */}
           <div className="question-card card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="question-list-title">Questions in this passage</div>
             <div className="question-list-mini" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
@@ -764,58 +765,33 @@ export default function Practice() {
               For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.
             </div>
 
+            {/* Gọi đúng component gốc để bốc đáp án và giao diện, triệt tiêu lỗi trắng trang */}
             <div className="question-scroll" ref={questionListRef} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {currentGroupQuestions.map((question) => {
-                const result = groupResults[currentGroup?.key]?.[question._questionKey];
-                const optionsList = getQuestionOptions(question);
-                
-                return (
-                  <div
-                    key={question._questionKey}
-                    className="group-question-block"
-                    ref={(el) => {
-                      questionNodeRefs.current[question._questionKey] = el;
-                    }}
-                    style={{ borderBottom: '1px solid var(--sky2)', paddingBottom: '16px', textAlign: 'left' }}
-                  >
-                    <div style={{ fontWeight: 700, color: 'var(--ocean)', marginBottom: '6px' }}>Question {question._questionNo}</div>
-                    <div style={{ marginBottom: '12px', fontWeight: 600, color: 'var(--navy)' }}>{question.question_text || question.content}</div>
-
-                    <div className="choices" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {optionsList.map((opt, i) => {
-                        const letter = ['A', 'B', 'C', 'D'][i];
-                        const isCurrentPicked = groupAnswers[question._questionKey] === opt;
-
-                        let optionClass = "";
-                        if (result && result.correct_answer === opt) optionClass = "correct";
-                        else if (result && isCurrentPicked && !result.is_correct) optionClass = "wrong";
-
-                        return (
-                          <button
-                            key={i}
-                            disabled={currentGroupChecked}
-                            className={`choice ${isCurrentPicked ? 'selected' : ''} ${optionClass}`}
-                            onClick={() => handleGroupAnswerChange(question._questionKey, opt)}
-                            style={{ textAlign: 'left', width: '100%' }}
-                          >
-                            <span className="choice-letter" style={{
-                              background: optionClass === 'correct' ? '#10b981' : optionClass === 'wrong' ? '#ef4444' : '',
-                              color: optionClass ? '#fff' : ''
-                            }}>{letter}</span>
-                            {opt}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+              {currentGroupQuestions.map((question) => (
+                <div
+                  key={question._questionKey}
+                  className="group-question-block"
+                  ref={(el) => {
+                    questionNodeRefs.current[question._questionKey] = el;
+                  }}
+                  style={{ borderBottom: '1px solid var(--sky2)', paddingBottom: '16px' }}
+                >
+                  <QuestionCard
+                    question={question}
+                    questionNo={question._questionNo}
+                    selectedAnswer={groupAnswers[question._questionKey] || ''}
+                    onSelectAnswer={(value) => handleGroupAnswerChange(question._questionKey, value)}
+                    showFeedback={currentGroupChecked}
+                    result={groupResults[currentGroup?.key]?.[question._questionKey]}
+                  />
+                </div>
+              ))}
             </div>
             {renderAiHelpPanel()}
           </div>
         </div>
       ) : (
-        /* ⌨️ KHU VỰC HIỂN THỊ ĐƠN CÂU CHO PART 5 (MẪU CHUẨN REVIEW - ẤN CHỌN ĐƯỢC ĐÁP ÁN) */
+        /* ⌨️ MÀN HÌNH ĐƠN CÂU LUYỆN TẬP CHO PART 5 (BẤM CHỌN ĐƯỢC ĐÁP ÁN) */
         <div className="question-card card" style={{ textAlign: 'left', padding: '24px' }}>
           {singleQuestion?.passage ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
