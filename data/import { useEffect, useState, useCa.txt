@@ -28,21 +28,6 @@ const PART5_AI_PROMPTS = [
   },
 ];
 
-const PART67_AI_PROMPTS = [
-  {
-    label: 'Tóm tắt nội dung đoạn văn',
-    template: 'Tóm tắt nội dung đoạn văn sau bằng tiếng Việt: "{passage}"',
-  },
-  {
-    label: 'Tra cứu từ khó trong đoạn',
-    template: 'Trong đoạn văn sau, giải thích nghĩa và cách dùng của từ khó: "{passage}"',
-  },
-  {
-    label: 'Gợi ý chọn đáp án',
-    template: 'Dựa vào đoạn văn sau và câu hỏi hiện tại, gợi ý đáp án đúng và lý do: "{passage}" -- Câu hỏi: "{question}"',
-  },
-];
-
 const normalizeAnswer = (v) => String(v ?? '').trim().toLowerCase();
 const letterToIndex = { A: 0, B: 1, C: 2, D: 3 };
 
@@ -373,13 +358,10 @@ export default function Practice() {
     container.scrollTo({ top: offset, behavior: 'smooth' });
   };
 
-  const buildAIPrompt = (promptObject) => {
-    if (!promptObject) return '';
+  const buildPart5Prompt = (promptObject) => {
     const questionText = singleQuestionText?.trim() || '';
-    const passageText = currentGroup?.passage?.trim() || '';
-    return promptObject.template
-      .replace('{question}', questionText)
-      .replace('{passage}', passageText);
+    if (!promptObject || !questionText) return '';
+    return promptObject.template.replace('{question}', questionText);
   };
 
   const handleAskAI = useCallback(async (promptText) => {
@@ -435,7 +417,7 @@ export default function Practice() {
               key={item.label}
               type="button"
               className="ai-suggestion-btn"
-              onClick={() => handleAskAI(buildAIPrompt(item))}
+              onClick={() => handleAskAI(buildPart5Prompt(item))}
               disabled={aiLoading}
             >
               {item.label}
@@ -455,71 +437,8 @@ export default function Practice() {
           <button
             type="button"
             className="btn btn-primary ai-query-btn"
-            onClick={() => handleAskAI(aiQuery || buildAIPrompt(PART5_AI_PROMPTS[0]))}
+            onClick={() => handleAskAI(aiQuery || buildPart5Prompt(PART5_AI_PROMPTS[0]))}
             disabled={aiLoading || !(aiQuery.trim() || singleQuestionText)}
-          >
-            {aiLoading ? 'Đang gọi AI...' : 'Ask AI'}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderPart67AiHelper = () => {
-    if (!isGroupMode || !currentGroup?.passage) return null;
-    const questionText = activeMetaQuestion?.question_text || activeMetaQuestion?.content || '';
-    return (
-      <div className="ai-helper-card">
-        <div className="ai-helper-header">
-          <div>
-            <div className="ai-helper-title">AI gợi ý Part 6/7</div>
-            <div className="ai-helper-sub">Tóm tắt đoạn văn, tra cứu từ khó và gợi ý chọn đáp án.</div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => {
-              setAiQuery('');
-              setAiResponse('');
-              setAiError(null);
-            }}
-            disabled={aiLoading}
-          >
-            Xóa
-          </button>
-        </div>
-
-        {aiError && <div className="ai-feedback ai-error">{aiError}</div>}
-        {aiResponse && <div className="ai-feedback ai-response">{aiResponse}</div>}
-
-        <div className="ai-suggestion-list">
-          {PART67_AI_PROMPTS.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className="ai-suggestion-btn"
-              onClick={() => handleAskAI(buildAIPrompt(item))}
-              disabled={aiLoading}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="ai-query-row">
-          <input
-            type="text"
-            className="ai-query-input"
-            placeholder="Nhập yêu cầu AI cho đoạn văn này..."
-            value={aiQuery}
-            onChange={(e) => setAiQuery(e.target.value)}
-            disabled={aiLoading}
-          />
-          <button
-            type="button"
-            className="btn btn-primary ai-query-btn"
-            onClick={() => handleAskAI(aiQuery || buildAIPrompt(PART67_AI_PROMPTS[0]))}
-            disabled={aiLoading || !(aiQuery.trim() || currentGroup?.passage)}
           >
             {aiLoading ? 'Đang gọi AI...' : 'Ask AI'}
           </button>
@@ -751,8 +670,6 @@ export default function Practice() {
             <div className="match-hint" style={{ marginBottom: 12 }}>
               For Part 6, click blanks like (1), (2), (3) in the passage to jump to the question.
             </div>
-
-            {renderPart67AiHelper()}
 
             <div className="question-scroll" ref={questionListRef}>
               {currentGroupQuestions.map((question) => (
